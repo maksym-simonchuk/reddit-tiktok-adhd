@@ -22,7 +22,8 @@ public struct ScriptSegment: Hashable, Sendable {
 public struct Script: Hashable, Sendable {
 
     /// Замерено в Фазе 2 на реальном синтезе: русская речь идёт медленнее английской.
-    public static let wordsPerSecond = 2.2
+    /// Замер: 120 слов русского текста системным голосом на скорости по умолчанию — 2.35 сл/с.
+    public static let wordsPerSecond = 2.35
 
     public let segments: [ScriptSegment]
 
