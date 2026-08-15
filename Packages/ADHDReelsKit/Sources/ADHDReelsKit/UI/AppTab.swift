@@ -4,6 +4,6 @@ import Foundation
 /// Имя с префиксом, чтобы не затенять `SwiftUI.Tab`.
 enum AppTab: Hashable {
     case feed
-    case queue
+    case reels
     case settings
 }
