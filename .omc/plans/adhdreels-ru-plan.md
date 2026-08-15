@@ -1,6 +1,6 @@
 # ADHDReels RU — план реализации
 
-**Статус:** `pending approval`
+**Статус:** `в работе` — Фаза 0 и Фаза 1 закрыты, идёт Фаза 2
 **Дата:** 2026-08-15
 **Рабочая папка:** `/Users/admin/Desktop/reddit-tiktok-montager`
 **Черновик-фундамент:** `/Users/admin/Downloads/ADHDReels` (21 файл, 2109 строк)
