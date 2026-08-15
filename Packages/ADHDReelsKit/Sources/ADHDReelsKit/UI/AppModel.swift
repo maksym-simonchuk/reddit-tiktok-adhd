@@ -1,5 +1,6 @@
 import Observation
 import SwiftUI
+import Translation
 
 /// Состояние всего приложения. Экраны его читают и дёргают методы — своего состояния,
 /// кроме выделенной вкладки и открытого ролика, у них нет.
@@ -26,6 +27,11 @@ public final class AppModel {
     public var lastCreated: Reel?
     public var error: String?
     public var toast: String?
+
+    /// Пакет перевода не имеет отношения к языку системы и клавиатуры — он качается
+    /// отдельно и только из вида: конфигурацию подхватывает `.translationTask`.
+    public var needsTranslationPack = false
+    public private(set) var translationRequest: TranslationSession.Configuration?
 
     @ObservationIgnored private let fetcher: RedditFetcher
     @ObservationIgnored private let gameplay: GameplayLibrary
@@ -88,6 +94,8 @@ public final class AppModel {
                 lastCreated = reel
             } catch is CancellationError {
                 return
+            } catch Translator.Failure.packMissing {
+                needsTranslationPack = true
             } catch {
                 self.error = error.localizedDescription
             }
@@ -96,6 +104,22 @@ public final class AppModel {
 
     public func cancelBuild() {
         build?.cancel()
+    }
+
+    // MARK: - Языковой пакет
+
+    public func downloadTranslationPack() {
+        translationRequest = TranslationSession.Configuration(
+            source: Translator.source,
+            target: Translator.target
+        )
+    }
+
+    /// Сама сессия сюда не приезжает: она не `Sendable`, а качает её вид.
+    public func finishTranslationPack(_ failure: String?) {
+        error = failure
+        if failure == nil { toast = "Языковой пакет готов" }
+        translationRequest = nil
     }
 
     // MARK: - Готовые ролики

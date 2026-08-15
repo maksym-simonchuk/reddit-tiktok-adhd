@@ -1,4 +1,5 @@
 import SwiftUI
+import Translation
 
 public struct RootView: View {
 
@@ -30,6 +31,29 @@ public struct RootView: View {
             Button("Понятно") { model.error = nil }
         } message: {
             Text(model.error ?? "")
+        }
+        .alert("Нужен языковой пакет", isPresented: $model.needsTranslationPack) {
+            Button("Скачать") { model.downloadTranslationPack() }
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text("""
+                Перевод идёт на устройстве и качается отдельно от языка системы \
+                и клавиатуры. Ставится один раз, около 300 МБ.
+                """)
+        }
+        .translationTask(model.translationRequest) { session in
+            // Скачивание показывает системный лист, своего прогресса не нужно.
+            // SwiftUI отдаёт сессию на главном акторе, а качает она nonisolated-методом,
+            // и сессия не Sendable. За пределы замыкания она не уходит — этого хватает.
+            nonisolated(unsafe) let download = session
+            let failure: String?
+            do {
+                try await download.prepareTranslation()
+                failure = nil
+            } catch {
+                failure = error.localizedDescription
+            }
+            await model.finishTranslationPack(failure)
         }
         .task(id: model.toast) {
             guard model.toast != nil else { return }

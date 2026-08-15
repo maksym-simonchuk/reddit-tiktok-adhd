@@ -13,7 +13,9 @@ public actor Translator {
         public var errorDescription: String? {
             switch self {
             case .packMissing:
-                "Не скачан языковой пакет. Настройки → Основные → Язык и регион → Языки перевода."
+                // Язык системы и клавиатуры к переводу отношения не имеет: пакеты
+                // качаются отдельно. Качает их приложение, поэтому текст — на случай отказа.
+                "Языковой пакет англо-русского перевода не скачан."
             case .unsupported:
                 "Устройство не поддерживает перевод с английского на русский."
             case .engine(let reason):
@@ -22,8 +24,11 @@ public actor Translator {
         }
     }
 
-    private let source = Locale.Language(identifier: "en")
-    private let target = Locale.Language(identifier: "ru")
+    public static let source = Locale.Language(identifier: "en")
+    public static let target = Locale.Language(identifier: "ru")
+
+    private let source = Translator.source
+    private let target = Translator.target
     private var cache: TranslationCache
 
     public init(cacheURL: URL? = TranslationCache.defaultURL) {
