@@ -87,7 +87,16 @@ struct RenderLiveTests {
         let frame = await Thumbnailer.image(for: output, height: 1920)
         #expect(frame != nil)
         if let data = frame?.pngData() {
-            try? data.write(to: URL.documentsDirectory.appending(path: "render-check.png"))
+            try? data.write(to: URL.temporaryDirectory.appending(path: "render-check.png"))
+        }
+
+        if captions {
+            let copy = URL.temporaryDirectory.appending(path: "render-check.mp4")
+            try? FileManager.default.removeItem(at: copy)
+            try? FileManager.default.copyItem(at: output, to: copy)
+
+            let timings = groups.flatMap(\.words).map { "\($0.text) \($0.start) \($0.end)" }.joined(separator: "\n")
+            try? Data(timings.utf8).write(to: URL.temporaryDirectory.appending(path: "render-check.txt"))
         }
     }
 }
