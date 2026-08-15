@@ -5,7 +5,7 @@ DEVICE := generic/platform=iOS
 # а fileprovider навешивает com.apple.FinderInfo, из-за чего падает codesign.
 DERIVED := $(HOME)/Library/Developer/Xcode/DerivedData/ADHDReels-build
 
-.PHONY: gen build test device run gameplay seed clean
+.PHONY: gen build test device run gameplay seed phone phone-test clean
 
 gen:
 	xcodegen generate
@@ -36,6 +36,29 @@ seed: gameplay
 		mkdir -p "$$container/Documents/Gameplay" && \
 		cp Gameplay/*.mp4 "$$container/Documents/Gameplay/" && \
 		echo "геймплей на месте: $$container/Documents/Gameplay"
+
+# Подключённый iPhone и команда подписи. Оба берутся один раз:
+# xcrun devicectl list devices, security find-identity -p codesigning -v.
+PHONE := $(shell xcrun devicectl list devices 2>/dev/null | awk '/connected/ {print $$4; exit}')
+TEAM := 7S35JBM2HH
+
+# Ставит приложение на телефон и кладёт туда геймплей. Симулятор субтитры не
+# рисует (QuartzCore падает на IOSurface), поэтому монтаж целиком — только здесь.
+phone: gen
+	xcodebuild -scheme $(SCHEME) -destination 'platform=iOS,id=$(PHONE)' -derivedDataPath $(DERIVED) \
+		-allowProvisioningUpdates DEVELOPMENT_TEAM=$(TEAM) build-for-testing
+	xcrun devicectl device install app --device $(PHONE) \
+		$(DERIVED)/Build/Products/Debug-iphoneos/ADHDReels.app
+	for clip in Gameplay/*.mp4; do \
+		xcrun devicectl device copy to --device $(PHONE) --domain-type appDataContainer \
+			--domain-identifier com.local.adhdreels --source "$$clip" \
+			--destination "Documents/Gameplay/$$(basename $$clip)" > /dev/null; \
+		echo "$$clip на телефоне"; \
+	done
+
+phone-test:
+	xcodebuild -scheme $(SCHEME) -destination 'platform=iOS,id=$(PHONE)' -derivedDataPath $(DERIVED) \
+		-allowProvisioningUpdates DEVELOPMENT_TEAM=$(TEAM) build-for-testing test-without-building
 
 clean:
 	rm -rf $(DERIVED) ADHDReels.xcodeproj
