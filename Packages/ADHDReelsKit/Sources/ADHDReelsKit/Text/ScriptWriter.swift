@@ -59,22 +59,29 @@ public struct ScriptWriter: Sendable {
 
     // MARK: - Обрезка
 
-    private func trim(_ segments: [ScriptSegment], toDuration limit: Double) -> [ScriptSegment] {
-        var segments = segments
+    /// Набирает сегменты по порядку, пока хватает бюджета слов, а первый не влезающий
+    /// режет по предложениям. Выбрасывать его целиком нельзя: тело рассказа почти всегда
+    /// длиннее бюджета, и от треда оставался один заголовок на три секунды.
+    func trim(_ segments: [ScriptSegment], toDuration limit: Double) -> [ScriptSegment] {
+        var budget = Int(limit * Script.wordsPerSecond)
+        var kept: [ScriptSegment] = []
 
-        // Хук выкидывать нельзя — без него ролик не за что зацепить.
-        while segments.count > 1, Script(segments: segments).estimatedDuration > limit {
-            segments.removeLast()
+        for segment in segments {
+            guard budget > 0 else { break }
+            let words = segment.text.split(whereSeparator: \.isWhitespace).count
+
+            if words <= budget {
+                kept.append(segment)
+                budget -= words
+                continue
+            }
+
+            let text = cut(segment.text, toWords: budget)
+            if !text.isEmpty { kept.append(ScriptSegment(kind: segment.kind, text: text)) }
+            break
         }
 
-        if let first = segments.first,
-           segments.count == 1,
-           Script(segments: segments).estimatedDuration > limit {
-            let words = Int(limit * Script.wordsPerSecond)
-            segments[0] = ScriptSegment(kind: first.kind, text: cut(first.text, toWords: words))
-        }
-
-        return segments
+        return kept
     }
 
     /// Обрезка по границе предложения: оборванная на полуслове фраза звучит как сбой.
@@ -84,17 +91,27 @@ public struct ScriptWriter: Sendable {
     }
 
     private func cut(_ text: String, toWords words: Int) -> String {
-        guard text.split(whereSeparator: \.isWhitespace).count > words else { return text }
-        return accumulateSentences(of: text) { current, sentence in
+        let all = text.split(whereSeparator: \.isWhitespace)
+        guard all.count > words else { return text }
+
+        let bySentence = accumulateSentences(of: text) { current, sentence in
             let used = current.split(whereSeparator: \.isWhitespace).count
             return used + sentence.split(whereSeparator: \.isWhitespace).count <= words
         }
+
+        // Первое предложение может само не влезть в бюджет. Тогда режем по словам:
+        // перебор в три раза по длительности хуже оборванной фразы.
+        guard bySentence.split(whereSeparator: \.isWhitespace).count <= words else {
+            return all.prefix(words).joined(separator: " ")
+        }
+
+        return bySentence
     }
 
     /// Набирает предложения, пока `fits` разрешает. Если не влезло даже первое —
     /// отдаёт его целиком: длинный сегмент лучше пустого.
     private func accumulateSentences(of text: String, fits: (String, String) -> Bool) -> String {
-        let sentences = Self.sentences(of: text)
+        let sentences = Sentences.of(text)
         var result = ""
 
         for sentence in sentences {
@@ -104,16 +121,5 @@ public struct ScriptWriter: Sendable {
 
         if !result.isEmpty { return result }
         return sentences.first ?? text
-    }
-
-    private static func sentences(of text: String) -> [String] {
-        var sentences: [String] = []
-
-        text.enumerateSubstrings(in: text.startIndex..., options: [.bySentences, .localized]) { sentence, _, _, _ in
-            guard let sentence = sentence?.trimmingCharacters(in: .whitespacesAndNewlines), !sentence.isEmpty else { return }
-            sentences.append(sentence)
-        }
-
-        return sentences
     }
 }

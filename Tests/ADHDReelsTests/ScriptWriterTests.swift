@@ -80,7 +80,7 @@ struct ScriptWriterTests {
         ])
     }
 
-    @Test("Сценарий режется до целевой длительности, но хук остаётся")
+    @Test("Сценарий режется до целевой длительности, а тело урезается, а не выбрасывается")
     func trimming() {
         var options = ScriptWriter.Options()
         options.targetDuration = 5
@@ -94,8 +94,24 @@ struct ScriptWriterTests {
 
         let script = ScriptWriter(options: options).finish(segments)
 
-        #expect(script.segments.map(\.kind) == [.hook])
+        #expect(script.segments.map(\.kind) == [.hook, .body])
         #expect(script.estimatedDuration <= 5)
+    }
+
+    @Test("Длинное тело занимает почти весь бюджет, а не пропадает")
+    func keepsBodyWhenItAloneExceedsBudget() {
+        var options = ScriptWriter.Options()
+        options.targetDuration = 45
+
+        let body = Array(repeating: "слово", count: 300).joined(separator: " ")
+        let script = ScriptWriter(options: options).finish([
+            ScriptSegment(kind: .hook, text: "Короткий хук"),
+            ScriptSegment(kind: .body, text: body),
+        ])
+
+        #expect(script.segments.count == 2)
+        #expect(script.estimatedDuration > 40)
+        #expect(script.estimatedDuration <= 45)
     }
 
     @Test("Слишком длинный хук режется по границе предложения")
