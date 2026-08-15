@@ -28,11 +28,14 @@ struct SettingsView: View {
                 Section("Голос") {
                     Picker("Голос", selection: $model.settings.voiceIdentifier) {
                         Text("Лучший из доступных").tag(String?.none)
+                        ForEach(PiperSpeechEngine.voices()) { voice in
+                            Text("\(voice.title) · нейросеть").tag(String?.some(voice.id))
+                        }
                         ForEach(SystemSpeechEngine.russianVoices(), id: \.identifier) { voice in
                             Text(voice.name).tag(String?.some(voice.identifier))
                         }
                     }
-                    if SystemSpeechEngine.russianVoices().isEmpty {
+                    if PiperSpeechEngine.voices().isEmpty, SystemSpeechEngine.russianVoices().isEmpty {
                         Text("Русских голосов нет. Настройки → Универсальный доступ → Устный контент → Голоса.")
                             .font(Theme.body(13))
                             .foregroundStyle(Theme.danger)

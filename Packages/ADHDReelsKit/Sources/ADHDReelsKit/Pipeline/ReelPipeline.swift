@@ -52,7 +52,7 @@ public actor ReelPipeline {
         let identifier = UUID()
         // Расширение не косметика: AVAudioFile выбирает контейнер по нему, а пишем мы PCM.
         let audio = folder.appending(path: "\(identifier.uuidString).wav")
-        let take = try await SystemSpeechEngine(voiceIdentifier: settings.voiceIdentifier)
+        let take = try await SpeechEngines.make(voiceIdentifier: settings.voiceIdentifier)
             .synthesize(script, to: audio)
         defer { try? FileManager.default.removeItem(at: audio) }
 

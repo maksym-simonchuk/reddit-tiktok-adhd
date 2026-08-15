@@ -28,6 +28,13 @@ targets:
     platform: iOS
     sources:
       - path: App
+      # Голоса Piper и фонетика espeak-ng. Папкой целиком: у espeak-ng-data сотня
+      # вложенных каталогов, и движок ищет их по относительному пути.
+      # Кладёт Scripts/fetch_tts.sh; без них озвучивает системный голос.
+      - path: Models
+        type: folder
+        buildPhase: resources
+        optional: true
     dependencies:
       - package: ADHDReelsKit
         product: ADHDReelsKit

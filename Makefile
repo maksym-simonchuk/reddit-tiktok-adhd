@@ -5,9 +5,13 @@ DEVICE := generic/platform=iOS
 # а fileprovider навешивает com.apple.FinderInfo, из-за чего падает codesign.
 DERIVED := $(HOME)/Library/Developer/Xcode/DerivedData/ADHDReels-build
 
-.PHONY: gen build test device run gameplay seed phone phone-test clean
+.PHONY: gen build test device run gameplay tts seed phone phone-test clean
 
-gen:
+# Движок озвучки и голоса — часть сборки: без xcframework'ов пакет не разрешается.
+tts:
+	./Scripts/fetch_tts.sh
+
+gen: tts
 	xcodegen generate
 
 build: gen
