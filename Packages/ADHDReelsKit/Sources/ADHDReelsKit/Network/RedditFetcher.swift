@@ -20,6 +20,15 @@ public actor RedditFetcher {
             case .empty: "Под фильтры не подошёл ни один пост."
             }
         }
+
+        /// Отказ по адресу, а не по данным: те же посты стоит попробовать взять из RSS.
+        var isBlocked: Bool {
+            switch self {
+            case .blocked, .rateLimited: true
+            case .badStatus(let code): code >= 500
+            default: false
+            }
+        }
     }
 
     /// Первый запрос идёт на основной хост, ретраи — на старый: он отдаёт JSON,
@@ -46,24 +55,35 @@ public actor RedditFetcher {
         allowNSFW: Bool = false,
         minimumScore: Int = 500
     ) async throws -> [RedditPost] {
-        let data = try await get("/r/\(subreddit)/top.json?t=\(window)&limit=\(limit)&raw_json=1")
         let posts: [RedditPost]
         do {
-            posts = try RedditListing.posts(from: data, minimumScore: minimumScore, allowNSFW: allowNSFW)
-        } catch {
-            throw Failure.malformed
+            let data = try await get("/r/\(subreddit)/top.json?t=\(window)&limit=\(limit)&raw_json=1")
+            do {
+                posts = try RedditListing.posts(from: data, minimumScore: minimumScore, allowNSFW: allowNSFW)
+            } catch {
+                throw Failure.malformed
+            }
+        } catch let failure as Failure where failure.isBlocked {
+            let data = try await get("/r/\(subreddit)/top/.rss?t=\(window)")
+            posts = RedditRSS.posts(from: data, subreddit: subreddit)
         }
+
         guard !posts.isEmpty else { throw Failure.empty }
         return posts
     }
 
     /// Комментарии первого уровня, отсортированные по рейтингу.
     public func comments(for post: RedditPost, limit: Int = 20) async throws -> [RedditComment] {
-        let data = try await get("/comments/\(post.id).json?limit=\(limit)&sort=top&raw_json=1")
         do {
-            return Array(try RedditListing.comments(from: data).prefix(limit))
-        } catch {
-            throw Failure.malformed
+            let data = try await get("/comments/\(post.id).json?limit=\(limit)&sort=top&raw_json=1")
+            do {
+                return Array(try RedditListing.comments(from: data).prefix(limit))
+            } catch {
+                throw Failure.malformed
+            }
+        } catch let failure as Failure where failure.isBlocked {
+            let data = try await get("/comments/\(post.id)/.rss?sort=top&limit=\(limit)")
+            return Array(RedditRSS.comments(from: data).prefix(limit))
         }
     }
 
