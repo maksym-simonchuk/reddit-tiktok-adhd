@@ -1,0 +1,14 @@
+.DS_Store
+.build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+
+# Модели скачиваются Scripts/fetch_models.sh, в репозитории их нет.
+Models/
+Frameworks/
+
+# Состояние сессий инструментов — не часть проекта.
+.omc/state/
