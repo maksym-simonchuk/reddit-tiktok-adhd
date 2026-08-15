@@ -13,3 +13,8 @@ Frameworks/
 # Состояние сессий инструментов — не часть проекта.
 .omc/state/
 .omc/project-memory.json
+
+# Геймплей качается Scripts/fetch_gameplay.sh — в репозитории видео не место.
+# Атрибуция CC-BY остаётся: без неё роликами нельзя пользоваться.
+Gameplay/*
+!Gameplay/CREDITS.md

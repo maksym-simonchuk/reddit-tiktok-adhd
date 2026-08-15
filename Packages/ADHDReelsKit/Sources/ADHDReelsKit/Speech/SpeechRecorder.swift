@@ -24,8 +24,14 @@ final class SpeechRecorder: NSObject, @unchecked Sendable {
     private var marks: [Mark] = []
     private var continuation: CheckedContinuation<Recording, Error>?
 
+    /// Последний буфер приходит раньше, чем синтезатор доигрывает своё внутри
+    /// TextToSpeech. Без этой ссылки объект умирает прямо в колбэке и утаскивает
+    /// синтезатор за собой — EXC_BAD_ACCESS в чужом потоке.
+    private var keepAlive: SpeechRecorder?
+
     func record(_ utterance: AVSpeechUtterance, to url: URL) async throws -> Recording {
         synthesizer.delegate = self
+        lock.withLock { keepAlive = self }
         try? FileManager.default.removeItem(at: url)
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
@@ -109,7 +115,26 @@ extension SpeechRecorder: AVSpeechSynthesizerDelegate {
         }
     }
 
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        // Пустой буфер обычно приходит раньше, но полагаться на порядок нельзя.
+        finish(with: nil)
+        release()
+    }
+
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         finish(with: CancellationError())
+        release()
+    }
+
+    private func release() {
+        synthesizer.delegate = nil
+        // Ссылку роняем за пределами замка: последний release внутри него убил бы
+        // сам замок вместе с объектом.
+        let held = lock.withLock {
+            let reference = keepAlive
+            keepAlive = nil
+            return reference
+        }
+        _ = held
     }
 }
