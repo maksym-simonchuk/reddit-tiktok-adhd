@@ -68,6 +68,9 @@ public actor RedditFetcher {
         if refresh {
             RedditCache.clear()
         } else if let cached: [RedditPost] = RedditCache.load(key) {
+            // Происхождение кеша важно не меньше данных: посты из RSS остаются
+            // без NSFW-флага и после того, как легли на диск.
+            lastFetchUsedRSS = RedditCache.load(key + ".rss") ?? false
             return cached
         }
 
@@ -87,6 +90,7 @@ public actor RedditFetcher {
 
         guard !posts.isEmpty else { throw Failure.empty }
         RedditCache.save(posts, for: key)
+        if lastFetchUsedRSS { RedditCache.save(true, for: key + ".rss") }
         return posts
     }
 

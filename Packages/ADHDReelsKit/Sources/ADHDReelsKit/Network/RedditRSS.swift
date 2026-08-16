@@ -9,16 +9,32 @@ enum RedditRSS {
         entries(from: data).compactMap { entry in
             guard entry.id.hasPrefix("t3_"), !entry.title.isEmpty else { return nil }
 
+            // Пост без текста — картинка или ссылка: истории в нём нет, ролик из
+            // одной подписи «submitted by …» собирать не из чего.
+            let body = HTMLText.plain(selftext(in: entry.content))
+            guard body.split(whereSeparator: \.isWhitespace).count >= 5 else { return nil }
+
             return RedditPost(
                 id: String(entry.id.dropFirst(3)),
                 subreddit: subreddit,
                 title: HTMLText.plain(entry.title),
-                selftext: HTMLText.plain(entry.content),
+                selftext: body,
                 score: 0,
                 isNSFW: false,
                 permalink: path(of: entry.link)
             )
         }
+    }
+
+    /// Тело поста Reddit обрамляет маркерами SC_OFF/SC_ON; всё вне их — служебная
+    /// подпись «submitted by … [link] [comments]», локализованная под язык
+    /// устройства, поэтому вырезать её по тексту ненадёжно, а по маркерам — точно.
+    static func selftext(in content: String) -> String {
+        guard let start = content.range(of: "<!-- SC_OFF -->"),
+              let end = content.range(of: "<!-- SC_ON -->", range: start.upperBound..<content.endIndex)
+        else { return "" }
+
+        return String(content[start.upperBound..<end.lowerBound])
     }
 
     /// Ссылка приходит абсолютной, а `RedditPost.permalink` везде хранится путём.

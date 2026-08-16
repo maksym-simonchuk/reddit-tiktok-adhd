@@ -112,7 +112,10 @@ struct FeedView: View {
         }
 
         let bare = text.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard !bare.isEmpty, bare.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" }) else { return nil }
+        // isLetter/isNumber в одиночку пропускают кириллицу и иероглифы — Reddit
+        // такие имена не принимает, а запрос с ними уходит в гарантированный 404.
+        guard !bare.isEmpty, bare.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_") })
+        else { return nil }
         return bare
     }
 
