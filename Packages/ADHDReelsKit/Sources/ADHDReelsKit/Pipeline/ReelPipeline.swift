@@ -39,7 +39,12 @@ public actor ReelPipeline {
             TranslatedLine(id: index + 1, kind: pair.1.kind, source: pair.0.text, translation: pair.1.text)
         }
 
-        if let hook { lines.insert(TranslatedLine(id: 0, kind: .hook, source: "", translation: hook), at: 0) }
+        if let hook {
+            // Заголовок треда крючок вытесняет — тем же правилом, что и в `finish`,
+            // иначе вычитка показывала бы строку, которой в ролике не будет.
+            if lines.first?.kind == .hook { lines.removeFirst() }
+            lines.insert(TranslatedLine(id: 0, kind: .hook, source: "", translation: hook), at: 0)
+        }
         lines.append(TranslatedLine(id: lines.count + 1, kind: .outro, source: "", translation: outro))
 
         return lines

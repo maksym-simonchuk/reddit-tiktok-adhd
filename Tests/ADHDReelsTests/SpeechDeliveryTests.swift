@@ -43,12 +43,20 @@ struct SpeechDeliveryTests {
         #expect(SpeechDelivery.pause(after: phrase("Конец."), before: nil) == 0)
     }
 
-    @Test("Перед вопросом зрителю пауза такая же, как после хука")
+    @Test("Перед вопросом зрителю пауза длиннее любой другой и слышна как отбивка")
     func outroGetsRoom() {
         let outro = phrase("А ты на чьей стороне?", kind: .outro)
         let before = SpeechDelivery.pause(after: phrase("Конец истории."), before: outro)
         let hook = SpeechDelivery.pause(after: phrase("Хук.", kind: .hook), before: phrase("Дальше."))
 
-        #expect(before == hook)
+        #expect(before > hook)
+        // Полсекунды — граница, ниже которой пауза читается как вдох, а не как отбивка.
+        #expect(before > 0.5)
+    }
+
+    @Test("Вопрос зрителю читается медленнее рассказа")
+    func outroSlowsDown() {
+        #expect(SpeechDelivery.tempo(of: .outro) < SpeechDelivery.tempo(of: .hook))
+        #expect(SpeechDelivery.tempo(of: .hook) < SpeechDelivery.tempo(of: .body))
     }
 }

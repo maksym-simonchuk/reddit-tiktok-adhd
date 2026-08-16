@@ -47,8 +47,8 @@ public struct ScriptWriter: Sendable {
     /// Финал: нормализация каждого сегмента и обрезка под целевую длительность.
     ///
     /// `hook` — крючок, написанный `HookWriter` по самой истории. Он встаёт первой
-    /// строкой и идёт в общий бюджет, а не сверх него: ролик должен остаться той же
-    /// длины. Без него сценарий начинается с заголовка треда.
+    /// строкой вместо заголовка треда и идёт в общий бюджет, а не сверх него: ролик
+    /// должен остаться той же длины. Без него первой строкой остаётся заголовок.
     ///
     /// `outro` — вопрос зрителю от `OutroWriter`. Обрезка режет хвост, а он и есть хвост,
     /// поэтому его снимают до неё и возвращают после: ролик, оборванный на середине
@@ -69,7 +69,13 @@ public struct ScriptWriter: Sendable {
 
         if let hook {
             let text = normalize(hook)
-            if !text.isEmpty { all.insert(ScriptSegment(kind: .hook, text: text), at: 0) }
+            if !text.isEmpty {
+                // Крючок заменяет заголовок треда, а не встаёт перед ним: заголовок
+                // пересказывает ту же завязку, и подряд они звучат повтором — а дальше
+                // ту же завязку в третий раз начинает сам рассказ.
+                if all.first?.kind == .hook { all.removeFirst() }
+                all.insert(ScriptSegment(kind: .hook, text: text), at: 0)
+            }
         }
 
         let spent = tail.map { Double($0.text.split(whereSeparator: \.isWhitespace).count) / Script.wordsPerSecond } ?? 0

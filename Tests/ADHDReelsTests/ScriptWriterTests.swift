@@ -59,12 +59,15 @@ struct ScriptWriterTests {
         ])
     }
 
-    @Test("Крючок встаёт первой строкой и проходит нормализацию")
+    @Test("Крючок заменяет заголовок треда, а не встаёт перед ним")
     func writtenHook() {
-        let segments = [ScriptSegment(kind: .hook, text: "Я не прав, что ушёл?")]
+        let segments = [
+            ScriptSegment(kind: .hook, text: "Я не прав, что ушёл?"),
+            ScriptSegment(kind: .body, text: "Жена разозлилась."),
+        ]
         let script = ScriptWriter().finish(segments, hook: "Она молчала об этом 12 лет")
 
-        #expect(script.segments.map(\.kind) == [.hook, .hook])
+        #expect(script.segments.map(\.kind) == [.hook, .body])
         #expect(script.segments[0].text == "Она молчала об этом двенадцать лет")
     }
 
