@@ -11,6 +11,12 @@ public struct ReelSettings: Codable, Hashable, Sendable {
     public var voiceIdentifier: String?
     public var caption = CaptionTheme()
 
+    /// Голоса привязаны к языку, поэтому смена языка сбрасывает выбор: сохранённый
+    /// диктор чужого языка всё равно не нашёлся бы, а движок молча брал бы первый.
+    public var language = ReelLanguage.russian {
+        didSet { if oldValue != language { voiceIdentifier = nil } }
+    }
+
     public init() {}
 
     /// Окна Reddit, которые имеют смысл: за час постов слишком мало, за всё время
@@ -36,9 +42,25 @@ public struct ReelSettings: Codable, Hashable, Sendable {
         "pettyrevenge"
     ]
 
+    /// Название по-человечески: «r/tifu» ничего не говорит, пока не прочитаешь десяток
+    /// тредов. Незнакомое имя показываем как есть — его мог вписать пользователь.
+    public static func subredditTitle(_ subreddit: String) -> String {
+        titles[subreddit] ?? subreddit
+    }
+
+    private static let titles = [
+        "TrueOffMyChest": "Наболело",
+        "AmItheAsshole": "Я не прав?",
+        "tifu": "Я всё испортил",
+        "confession": "Признания",
+        "relationship_advice": "Отношения",
+        "pettyrevenge": "Мелкая месть",
+    ]
+
     public var scriptOptions: ScriptWriter.Options {
         var options = ScriptWriter.Options()
         options.targetDuration = targetDuration
+        options.language = language
         return options
     }
 

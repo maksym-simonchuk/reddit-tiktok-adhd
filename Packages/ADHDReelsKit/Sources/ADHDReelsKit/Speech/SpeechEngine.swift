@@ -19,24 +19,33 @@ public protocol SpeechEngine: Sendable {
     func synthesize(_ script: Script, to url: URL) async throws -> SpeechTake
 }
 
-/// Один идентификатор голоса на оба движка: у Piper это папка модели, у системного —
-/// идентификатор `AVSpeechSynthesisVoice`. Хранить два поля незачем — выбор всё равно один.
+/// Один идентификатор голоса на оба движка: у vosk это диктор модели, у системного —
+/// идентификатор `AVSpeechSynthesisVoice`. Хранить два поля незачем: выбор всё равно один.
 public enum SpeechEngines {
 
-    public static func make(voiceIdentifier: String?) -> SpeechEngine {
-        let neural = PiperSpeechEngine.voices()
+    public static func make(voiceIdentifier: String?, language: ReelLanguage = .russian) -> SpeechEngine {
+        if let voiceIdentifier, let engine = engine(for: voiceIdentifier, language: language) { return engine }
 
-        if let voiceIdentifier {
-            if let voice = neural.first(where: { $0.id == voiceIdentifier }) {
-                return PiperSpeechEngine(voice: voice)
-            }
-            if SystemSpeechEngine.russianVoices().contains(where: { $0.identifier == voiceIdentifier }) {
-                return SystemSpeechEngine(voiceIdentifier: voiceIdentifier)
-            }
+        // Выбора нет или он протух. Русский читает vosk: он знает ударения и ведёт
+        // интонацию по смыслу фразы. Других языков он не знает — там системный голос.
+        if language == .russian, let voice = defaultNeural() { return VoskSpeechEngine(voice: voice) }
+
+        return SystemSpeechEngine(language: language)
+    }
+
+    private static func engine(for identifier: String, language: ReelLanguage) -> SpeechEngine? {
+        if language == .russian, let voice = VoskSpeechEngine.voices().first(where: { $0.id == identifier }) {
+            return VoskSpeechEngine(voice: voice)
+        }
+        if SystemSpeechEngine.voices(for: language).contains(where: { $0.identifier == identifier }) {
+            return SystemSpeechEngine(language: language, voiceIdentifier: identifier)
         }
 
-        // Выбора нет или он протух: нейросеть звучит лучше любого системного голоса.
-        guard let best = neural.first else { return SystemSpeechEngine() }
-        return PiperSpeechEngine(voice: best)
+        return nil
+    }
+
+    private static func defaultNeural() -> VoskSpeechEngine.Voice? {
+        let voices = VoskSpeechEngine.voices()
+        return voices.first { $0.id == VoskSpeechEngine.defaultVoice } ?? voices.first
     }
 }

@@ -7,14 +7,14 @@ import Foundation
 public struct SystemSpeechEngine: SpeechEngine {
 
     public enum Failure: LocalizedError, Equatable {
-        case noRussianVoice
+        case noVoice(ReelLanguage)
         case emptyScript
         case silence
 
         public var errorDescription: String? {
             switch self {
-            case .noRussianVoice:
-                "Нет русского голоса. Настройки → Универсальный доступ → Устный контент → Голоса → Русский."
+            case .noVoice(let language):
+                "Нет голоса для языка «\(language.title)». Настройки → Универсальный доступ → Устный контент → Голоса."
             case .emptyScript:
                 "Сценарий пуст — озвучивать нечего."
             case .silence:
@@ -24,16 +24,25 @@ public struct SystemSpeechEngine: SpeechEngine {
     }
 
     /// Голос-премиум звучит заметно живее, поэтому качество важнее алфавитного порядка.
-    public static func russianVoices() -> [AVSpeechSynthesisVoice] {
+    public static func voices(for language: ReelLanguage) -> [AVSpeechSynthesisVoice] {
         AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix("ru") }
+            .filter { $0.language.hasPrefix(language.rawValue) }
             .sorted { $0.quality.rawValue > $1.quality.rawValue }
     }
 
+    private let language: ReelLanguage
     private let voiceIdentifier: String?
     private let rate: Float
 
-    public init(voiceIdentifier: String? = nil, rate: Float = AVSpeechUtteranceDefaultSpeechRate) {
+    /// `rate` по умолчанию быстрее системного: в ролике обычная диктовка звучит вяло.
+    /// Шкала AVSpeech нелинейная — 0.5 это обычная речь, 1.0 примерно вчетверо быстрее,
+    /// и полтора раза приходятся на 0.57.
+    public init(
+        language: ReelLanguage = .russian,
+        voiceIdentifier: String? = nil,
+        rate: Float = 0.57
+    ) {
+        self.language = language
         self.voiceIdentifier = voiceIdentifier
         self.rate = rate
     }
@@ -42,9 +51,9 @@ public struct SystemSpeechEngine: SpeechEngine {
         let text = script.plainText
         guard !text.isEmpty else { throw Failure.emptyScript }
 
-        let voices = Self.russianVoices()
+        let voices = Self.voices(for: language)
         guard let voice = voices.first(where: { $0.identifier == voiceIdentifier }) ?? voices.first else {
-            throw Failure.noRussianVoice
+            throw Failure.noVoice(language)
         }
 
         let utterance = AVSpeechUtterance(string: text)

@@ -47,14 +47,24 @@ public actor RedditFetcher {
         self.session = URLSession(configuration: configuration)
     }
 
-    /// Топ подреддита за окно: hour, day, week, month, year, all.
+    /// Топ подреддита за окно: hour, day, week, month, year, all. Ответ кладётся в кеш
+    /// и дальше отдаётся оттуда; `refresh` выбрасывает весь кеш и идёт в сеть заново.
     public func topPosts(
         subreddit: String,
         window: String = "day",
         limit: Int = 25,
         allowNSFW: Bool = false,
-        minimumScore: Int = 500
+        minimumScore: Int = 500,
+        refresh: Bool = false
     ) async throws -> [RedditPost] {
+        let key = "top-\(subreddit)-\(window)-\(limit)-\(minimumScore)-\(allowNSFW)"
+
+        if refresh {
+            RedditCache.clear()
+        } else if let cached: [RedditPost] = RedditCache.load(key) {
+            return cached
+        }
+
         let posts: [RedditPost]
         do {
             let data = try await get("/r/\(subreddit)/top.json?t=\(window)&limit=\(limit)&raw_json=1")
@@ -69,22 +79,8 @@ public actor RedditFetcher {
         }
 
         guard !posts.isEmpty else { throw Failure.empty }
+        RedditCache.save(posts, for: key)
         return posts
-    }
-
-    /// Комментарии первого уровня, отсортированные по рейтингу.
-    public func comments(for post: RedditPost, limit: Int = 20) async throws -> [RedditComment] {
-        do {
-            let data = try await get("/comments/\(post.id).json?limit=\(limit)&sort=top&raw_json=1")
-            do {
-                return Array(try RedditListing.comments(from: data).prefix(limit))
-            } catch {
-                throw Failure.malformed
-            }
-        } catch let failure as Failure where failure.isBlocked {
-            let data = try await get("/comments/\(post.id)/.rss?sort=top&limit=\(limit)")
-            return Array(RedditRSS.comments(from: data).prefix(limit))
-        }
     }
 
     // MARK: - Транспорт

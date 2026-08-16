@@ -21,19 +21,4 @@ enum RedditFixtures {
     ]}}
     """#
 
-    static let comments = #"""
-    [
-      {"kind":"Listing","data":{"children":[
-        {"kind":"t3","data":{"id":"a1","title":"AITA for leaving early?","selftext":"body","score":8400,
-          "permalink":"/r/AskReddit/comments/a1/x/","stickied":false}}
-      ]}},
-      {"kind":"Listing","data":{"children":[
-        {"kind":"t1","data":{"id":"c1","body":"NTA, honestly. See [the rules](https://reddit.com/rules) for that.","score":300}},
-        {"kind":"t1","data":{"id":"c2","body":"YTA and everyone knows it 😤","score":1200}},
-        {"kind":"t1","data":{"id":"c3","body":"[deleted]","score":9000}},
-        {"kind":"t1","data":{"id":"c4","body":"","score":400}},
-        {"kind":"more","data":{"id":"c5","body":"ignored","score":99999}}
-      ]}}
-    ]
-    """#
 }

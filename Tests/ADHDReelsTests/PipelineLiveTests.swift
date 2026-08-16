@@ -35,11 +35,7 @@ struct PipelineLiveTests {
             """,
         score: 9000,
         isNSFW: false,
-        permalink: "/r/TrueOffMyChest/comments/local/x/",
-        comments: [
-            RedditComment(id: "c1", body: "You carried that alone for twelve years. The silence was never yours to keep.", score: 4200),
-            RedditComment(id: "c2", body: "Your sister owes you an apology, and your father owes you twelve years of them.", score: 3100),
-        ]
+        permalink: "/r/TrueOffMyChest/comments/local/x/"
     )
 
     // Субтитры кладёт CoreAnimation, а она в симуляторе роняет QuartzCore.
@@ -50,11 +46,8 @@ struct PipelineLiveTests {
         func note(_ line: String) { report += line + "\n" }
         defer { try? Data(report.utf8).write(to: URL.temporaryDirectory.appending(path: "pipeline-report.txt")) }
 
-        for voice in PiperSpeechEngine.voices() {
-            note("нейроголос: \(voice.title) [\(voice.id)]")
-        }
-        note("espeak-ng-data: \(PiperSpeechEngine.espeakData?.path(percentEncoded: false) ?? "нет")")
-        for voice in SystemSpeechEngine.russianVoices() {
+        note("дикторов vosk: \(VoskSpeechEngine.voices().count)")
+        for voice in SystemSpeechEngine.voices(for: .russian) {
             note("голос: \(voice.name) [\(voice.identifier)] качество=\(voice.quality.rawValue)")
         }
 
@@ -80,6 +73,7 @@ struct PipelineLiveTests {
 
         var post = Self.fallback
         var source = "запасной тред"
+
         do {
             let posts = try await fetcher.topPosts(
                 subreddit: settings.subreddit,
@@ -94,13 +88,9 @@ struct PipelineLiveTests {
             source = "запасной тред: \(error.localizedDescription)"
         }
 
-        if post.comments.isEmpty {
-            post.comments = (try? await fetcher.comments(for: post)) ?? []
-        }
-
         note("\nисточник: \(source)")
         note("тред: \(post.title)")
-        note("тело: \(post.selftext.count) символов, комментариев \(post.comments.count)")
+        note("тело: \(post.selftext.count) символов")
 
         let writer = ScriptWriter(options: settings.scriptOptions)
         let draft = writer.draft(from: post)

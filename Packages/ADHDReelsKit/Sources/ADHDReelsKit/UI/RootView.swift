@@ -3,13 +3,20 @@ import Translation
 
 public struct RootView: View {
 
-    @State private var model = AppModel()
+    /// Модель приходит снаружи: её же держит `@main`, потому что фоновую сборку
+    /// система приносит в приложение, а не в экран.
+    private let model: AppModel
+
     @State private var selection: AppTab = .feed
 
-    public init() {}
+    public init(model: AppModel) {
+        self.model = model
+    }
 
     public var body: some View {
-        TabView(selection: $selection) {
+        @Bindable var model = model
+
+        return TabView(selection: $selection) {
             Tab("Треды", systemImage: "text.bubble.fill", value: AppTab.feed) {
                 FeedView(onShowReel: { selection = .reels })
             }
@@ -64,5 +71,5 @@ public struct RootView: View {
 }
 
 #Preview {
-    RootView()
+    RootView(model: AppModel())
 }

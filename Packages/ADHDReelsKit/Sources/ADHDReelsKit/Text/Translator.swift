@@ -1,23 +1,24 @@
 import Foundation
 import Translation
 
-/// EN → RU на устройстве. Сессию с iOS 26 можно создать напрямую, без SwiftUI-модификатора,
-/// но только для уже скачанного языкового пакета — отсюда явная ошибка вместо молчания.
+/// EN → язык озвучки на устройстве. Сессию с iOS 26 можно создать напрямую, без
+/// SwiftUI-модификатора, но только для уже скачанного языкового пакета — отсюда явная
+/// ошибка вместо молчания.
 public actor Translator {
 
     public enum Failure: LocalizedError {
-        case packMissing
-        case unsupported
+        case packMissing(ReelLanguage)
+        case unsupported(ReelLanguage)
         case engine(String)
 
         public var errorDescription: String? {
             switch self {
-            case .packMissing:
+            case .packMissing(let language):
                 // Язык системы и клавиатуры к переводу отношения не имеет: пакеты
                 // качаются отдельно. Качает их приложение, поэтому текст — на случай отказа.
-                "Языковой пакет англо-русского перевода не скачан."
-            case .unsupported:
-                "Устройство не поддерживает перевод с английского на русский."
+                "Языковой пакет перевода на «\(language.title)» не скачан."
+            case .unsupported(let language):
+                "Устройство не переводит с английского на «\(language.title)»."
             case .engine(let reason):
                 "Переводчик не справился: \(reason)"
             }
@@ -25,17 +26,21 @@ public actor Translator {
     }
 
     public static let source = Locale.Language(identifier: "en")
-    public static let target = Locale.Language(identifier: "ru")
 
     private let source = Translator.source
-    private let target = Translator.target
+    private let language: ReelLanguage
+    private let target: Locale.Language
     private var cache: TranslationCache
 
-    public init(cacheURL: URL? = TranslationCache.defaultURL) {
-        self.cache = TranslationCache(url: cacheURL)
+    /// Кэш у каждого языка свой: он ключуется исходным текстом, и общий файл отдавал бы
+    /// испанский перевод на русский запрос.
+    public init(target language: ReelLanguage = .russian, cacheURL: URL? = nil) {
+        self.language = language
+        self.target = language.locale
+        self.cache = TranslationCache(url: cacheURL ?? TranslationCache.defaultURL(for: language))
     }
 
-    /// Возвращает сегменты с русским текстом, сохраняя порядок и `kind`.
+    /// Возвращает переведённые сегменты, сохраняя порядок и `kind`.
     public func translate(_ segments: [ScriptSegment]) async throws -> [ScriptSegment] {
         let pending = segments.filter { cache[$0.text] == nil }
 
@@ -52,9 +57,9 @@ public actor Translator {
     private func fill(_ texts: [String]) async throws {
         switch await LanguageAvailability().status(from: source, to: target) {
         case .installed: break
-        case .supported: throw Failure.packMissing
-        case .unsupported: throw Failure.unsupported
-        @unknown default: throw Failure.unsupported
+        case .supported: throw Failure.packMissing(language)
+        case .unsupported: throw Failure.unsupported(language)
+        @unknown default: throw Failure.unsupported(language)
         }
 
         let session = TranslationSession(installedSource: source, target: target)
@@ -67,7 +72,7 @@ public actor Translator {
                 cache[response.sourceText] = response.targetText
             }
         } catch TranslationError.notInstalled {
-            throw Failure.packMissing
+            throw Failure.packMissing(language)
         } catch {
             throw Failure.engine(error.localizedDescription)
         }

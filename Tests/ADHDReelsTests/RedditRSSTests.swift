@@ -47,21 +47,16 @@ struct RedditRSSTests {
         #expect(!posts.contains { $0.title.contains("top scoring links") })
     }
 
-    @Test("Комментарии берутся только с префиксом t1_")
-    func parsesComments() {
+    @Test("Посты берутся только с префиксом t3_")
+    func skipsComments() {
         let feed = """
         <feed xmlns="http://www.w3.org/2005/Atom">
-          <entry><id>t3_post</id><content type="html">&lt;p&gt;Пост&lt;/p&gt;</content></entry>
-          <entry><id>t1_abc</id><content type="html">&lt;p&gt;Ответ&lt;/p&gt;</content></entry>
-          <entry><id>t1_empty</id><content type="html"></content></entry>
+          <entry><id>t3_post</id><title>Пост</title><content type="html">&lt;p&gt;Текст&lt;/p&gt;</content></entry>
+          <entry><id>t1_abc</id><title>Ответ</title><content type="html">&lt;p&gt;Ответ&lt;/p&gt;</content></entry>
         </feed>
         """
 
-        let comments = RedditRSS.comments(from: Data(feed.utf8))
-
-        #expect(comments.count == 1)
-        #expect(comments[0].id == "abc")
-        #expect(comments[0].body == "Ответ")
+        #expect(RedditRSS.posts(from: Data(feed.utf8), subreddit: "x").map(\.id) == ["post"])
     }
 
     @Test("Мусор вместо XML не роняет разбор")

@@ -28,9 +28,10 @@ targets:
     platform: iOS
     sources:
       - path: App
-      # Голоса Piper и фонетика espeak-ng. Папкой целиком: у espeak-ng-data сотня
-      # вложенных каталогов, и движок ищет их по относительному пути.
-      # Кладёт Scripts/fetch_tts.sh; без них озвучивает системный голос.
+      # Модели: озвучка vosk-tts, переводчик Ruadapt-Qwen3-4B и словарь «ё». Папкой целиком:
+      # движки ищут файлы по относительным путям внутри неё.
+      # Кладут Scripts/fetch_tts.sh и Scripts/fetch_llm.sh; без них озвучивает
+      # системный голос, а переводит Apple Translation.
       - path: Models
         type: folder
         buildPhase: resources
@@ -49,16 +50,25 @@ targets:
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         ENABLE_PREVIEWS: YES
+    # Веса переводчика — 4.0 ГБ, и рядом лежат графы озвучки. Без этого права система
+    # снимает приложение по обычному лимиту памяти прямо на загрузке модели.
+    entitlements:
+      path: App/ADHDReels.entitlements
+      properties:
+        com.apple.developer.kernel.increased-memory-limit: true
 
   ADHDReelsTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: Tests/ADHDReelsTests
+    # Пакет тянется через приложение-хост, а не напрямую: если пакет линкуют два
+    # таргета, Xcode собирает его продукты динамическими фреймворками. А
+    # swift-transformers 1.0.0 отдельным фреймворком не линкуется — Hub зовёт
+    # OrderedCollections, но в зависимостях его не объявляет (починено в 1.3.3,
+    # куда mlx-swift-examples ещё не пускает).
     dependencies:
       - target: ADHDReels
-      - package: ADHDReelsKit
-        product: ADHDReelsKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

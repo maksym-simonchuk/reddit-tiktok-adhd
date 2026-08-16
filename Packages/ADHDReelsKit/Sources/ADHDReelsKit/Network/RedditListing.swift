@@ -13,16 +13,6 @@ public enum RedditListing {
             .filter { allowNSFW || !$0.isNSFW }
     }
 
-    public static func comments(from data: Data) throws -> [RedditComment] {
-        // Ответ на /comments/<id>.json — массив из двух листингов: пост и ветка.
-        try JSONDecoder().decode([Listing].self, from: data)
-            .flatMap(\.data.children)
-            .filter { $0.kind == "t1" }
-            .compactMap(\.data.asComment)
-            .filter { !$0.body.isEmpty && $0.body != "[deleted]" && $0.body != "[removed]" }
-            .sorted { $0.score > $1.score }
-    }
-
     // MARK: - Формат
 
     private struct Listing: Decodable {
@@ -38,13 +28,12 @@ public enum RedditListing {
         }
     }
 
-    /// Reddit использует один конверт для постов и комментариев, поэтому всё опционально.
+    /// Reddit отдаёт посты в общем конверте, где заполнено не всё, поэтому всё опционально.
     private struct Thing: Decodable {
         let id: String?
         let subreddit: String?
         let title: String?
         let selftext: String?
-        let body: String?
         let score: Int?
         let over_18: Bool?
         let permalink: String?
@@ -61,11 +50,6 @@ public enum RedditListing {
                 isNSFW: over_18 ?? false,
                 permalink: permalink ?? "/comments/\(id)/"
             )
-        }
-
-        var asComment: RedditComment? {
-            guard let id, let body else { return nil }
-            return RedditComment(id: id, body: body, score: score ?? 0)
         }
     }
 }

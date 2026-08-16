@@ -8,7 +8,7 @@ import Testing
 /// а не дефект кода.
 @Suite(
     "Системный синтезатор",
-    .enabled(if: !SystemSpeechEngine.russianVoices().isEmpty, "нет русского голоса")
+    .enabled(if: !SystemSpeechEngine.voices(for: .russian).isEmpty, "нет русского голоса")
 )
 struct SystemSpeechEngineTests {
 

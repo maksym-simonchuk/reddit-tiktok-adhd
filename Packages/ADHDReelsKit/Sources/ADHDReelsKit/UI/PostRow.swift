@@ -1,12 +1,13 @@
 import SwiftUI
 
-/// Строка ленты: заголовок треда и одна кнопка, которая делает из него ролик.
+/// Строка ленты: заголовок треда, кнопка сборки ролика и кнопка вычитки перевода.
 struct PostRow: View {
 
     let post: RedditPost
     let isBuilding: Bool
     let isBlocked: Bool
     let onGenerate: () -> Void
+    let onPreview: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.spacing * 1.5) {
@@ -25,22 +26,37 @@ struct PostRow: View {
             .font(Theme.numeric(13))
             .foregroundStyle(Theme.secondaryText)
 
-            Button(action: onGenerate) {
-                HStack(spacing: Theme.spacing) {
-                    if isBuilding {
-                        ProgressView().controlSize(.small).tint(Theme.background)
-                    } else {
-                        Image(systemName: "wand.and.stars")
+            HStack(spacing: Theme.spacing) {
+                Button(action: onGenerate) {
+                    HStack(spacing: Theme.spacing) {
+                        if isBuilding {
+                            ProgressView().controlSize(.small).tint(Theme.background)
+                        } else {
+                            Image(systemName: "wand.and.stars")
+                        }
+                        Text(isBuilding ? "Собираю" : "Сделать ролик")
                     }
-                    Text(isBuilding ? "Собираю" : "Сделать ролик")
+                    .font(Theme.body(15))
+                    .foregroundStyle(Theme.background)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Theme.minimumHitTarget)
+                    .background(isBlocked && !isBuilding ? Theme.tertiaryText : Theme.accent, in: .capsule)
                 }
-                .font(Theme.body(15))
-                .foregroundStyle(Theme.background)
-                .frame(maxWidth: .infinity)
-                .frame(height: Theme.minimumHitTarget)
-                .background(isBlocked && !isBuilding ? Theme.tertiaryText : Theme.accent, in: .capsule)
+                // Без своего стиля List считает всю строку одной кнопкой: тап по лупе
+                // запускал сборку ролика.
+                .buttonStyle(.plain)
+                .disabled(isBlocked)
+
+                Button(action: onPreview) {
+                    Image(systemName: "text.magnifyingglass")
+                        .font(Theme.body(15))
+                        .foregroundStyle(isBlocked ? Theme.tertiaryText : Theme.primaryText)
+                        .frame(width: Theme.minimumHitTarget, height: Theme.minimumHitTarget)
+                        .background(Theme.separator, in: .capsule)
+                }
+                .disabled(isBlocked)
+                .accessibilityLabel("Прочитать перевод")
             }
-            .disabled(isBlocked)
         }
         .padding(Theme.spacing * 2)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -61,7 +77,8 @@ struct PostRow: View {
         ),
         isBuilding: false,
         isBlocked: false,
-        onGenerate: {}
+        onGenerate: {},
+        onPreview: {}
     )
     .padding()
     .background(Theme.background)

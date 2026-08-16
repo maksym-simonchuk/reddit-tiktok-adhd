@@ -14,7 +14,7 @@ public enum ReelStage: Int, CaseIterable, Comparable, Sendable {
     public var title: String {
         switch self {
         case .reading: "Читаю тред"
-        case .translating: "Перевожу на русский"
+        case .translating: "Перевожу"
         case .voicing: "Озвучиваю"
         case .mounting: "Подбираю геймплей"
         case .rendering: "Собираю видео"

@@ -58,5 +58,11 @@ public struct Reel: Identifiable, Hashable, Sendable, Codable {
         URL.documentsDirectory.appending(path: Reel.folderName).appending(path: fileName)
     }
 
+    /// Обложка лежит рядом с видео под тем же именем: второй путь хранить незачем,
+    /// а старые ролики просто остаются без файла.
+    public var coverURL: URL {
+        url.deletingPathExtension().appendingPathExtension("jpg")
+    }
+
     public static let folderName = "Reels"
 }

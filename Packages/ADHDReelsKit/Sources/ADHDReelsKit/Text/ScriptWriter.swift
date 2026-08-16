@@ -8,9 +8,11 @@ public struct ScriptWriter: Sendable {
         /// Целевая длительность озвучки в секундах.
         public var targetDuration: Double = 45
         public var includeSelftext = true
-        public var maxComments = 4
         /// Ограничение на сегмент до перевода — переводить то, что всё равно обрежется, незачем.
         public var maxSourceCharacters = 1200
+        /// Язык готового сценария: на нём говорит обращение к зрителю и по нему
+        /// решается, нормализовать ли текст по-русски.
+        public var language = ReelLanguage.russian
 
         public init() {}
     }
@@ -38,23 +40,49 @@ public struct ScriptWriter: Sendable {
             }
         }
 
-        for comment in post.comments.prefix(options.maxComments) {
-            let text = EnglishCleaner.clean(comment.body)
-            guard text.count > 15 else { continue }
-            segments.append(ScriptSegment(kind: .comment, text: cut(text, to: options.maxSourceCharacters)))
-        }
-
         // Запас 1.4 — русский перевод обычно чуть длиннее, точная обрезка будет в `finish`.
         return trim(segments, toDuration: options.targetDuration * 1.4)
     }
 
-    /// Русский финал: нормализация каждого сегмента и обрезка под целевую длительность.
-    public func finish(_ segments: [ScriptSegment]) -> Script {
-        let normalized = segments
-            .map { ScriptSegment(kind: $0.kind, text: normalizer.normalize($0.text)) }
+    /// Финал: нормализация каждого сегмента и обрезка под целевую длительность.
+    ///
+    /// `hook` — крючок, написанный `HookWriter` по самой истории. Он встаёт первой
+    /// строкой и идёт в общий бюджет, а не сверх него: ролик должен остаться той же
+    /// длины. Без него сценарий начинается с заголовка треда.
+    ///
+    /// `outro` — вопрос зрителю от `OutroWriter`. Обрезка режет хвост, а он и есть хвост,
+    /// поэтому его снимают до неё и возвращают после: ролик, оборванный на середине
+    /// чужой ссоры, комментариев не собирает. Вычитанный текст приходит с ним внутри —
+    /// оттуда его и берём, чтобы правка человека не потерялась.
+    public func finish(_ segments: [ScriptSegment], hook: String? = nil, outro: String? = nil) -> Script {
+        var all = segments
+            .map { ScriptSegment(kind: $0.kind, text: normalize($0.text)) }
             .filter { !$0.text.isEmpty }
 
-        return Script(segments: trim(normalized, toDuration: options.targetDuration))
+        guard !all.isEmpty else { return Script(segments: []) }
+
+        var tail = all.last?.kind == .outro ? all.removeLast() : nil
+        if let outro {
+            let text = normalize(outro)
+            if !text.isEmpty { tail = ScriptSegment(kind: .outro, text: text) }
+        }
+
+        if let hook {
+            let text = normalize(hook)
+            if !text.isEmpty { all.insert(ScriptSegment(kind: .hook, text: text), at: 0) }
+        }
+
+        let spent = tail.map { Double($0.text.split(whereSeparator: \.isWhitespace).count) / Script.wordsPerSecond } ?? 0
+        var kept = trim(all, toDuration: options.targetDuration - spent)
+        if let tail { kept.append(tail) }
+
+        return Script(segments: kept)
+    }
+
+    /// Нормализация написана под русский: цифры прописью, ё, транслитерация латиницы.
+    /// Остальным языкам она бы только сломала текст — там хватает общей чистки.
+    private func normalize(_ text: String) -> String {
+        options.language == .russian ? normalizer.normalize(text) : TextTidy.tidy(text)
     }
 
     // MARK: - Обрезка

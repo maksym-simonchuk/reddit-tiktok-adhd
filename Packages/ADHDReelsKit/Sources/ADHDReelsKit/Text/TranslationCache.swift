@@ -4,10 +4,10 @@ import Foundation
 /// один и тот же комментарий в разных подборках переводится один раз.
 public struct TranslationCache: Sendable {
 
-    public static var defaultURL: URL? {
+    public static func defaultURL(for language: ReelLanguage) -> URL? {
         try? FileManager.default
             .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            .appending(path: "cache/translations.json")
+            .appending(path: "cache/translations-\(language.rawValue).json")
     }
 
     /// Хранилище не должно расти бесконечно — оставляем последние переводы.

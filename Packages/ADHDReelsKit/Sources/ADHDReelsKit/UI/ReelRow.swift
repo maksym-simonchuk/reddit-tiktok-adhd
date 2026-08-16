@@ -7,7 +7,7 @@ struct ReelRow: View {
 
     var body: some View {
         HStack(spacing: Theme.spacing * 1.5) {
-            ReelThumbnail(url: reel.url)
+            ReelThumbnail(reel: reel)
                 .frame(width: 54, height: 96)
 
             VStack(alignment: .leading, spacing: Theme.spacing / 2) {

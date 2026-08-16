@@ -21,17 +21,6 @@ enum RedditRSS {
         }
     }
 
-    static func comments(from data: Data) -> [RedditComment] {
-        entries(from: data).compactMap { entry in
-            guard entry.id.hasPrefix("t1_") else { return nil }
-
-            let body = HTMLText.plain(entry.content)
-            guard !body.isEmpty else { return nil }
-
-            return RedditComment(id: String(entry.id.dropFirst(3)), body: body, score: 0)
-        }
-    }
-
     /// Ссылка приходит абсолютной, а `RedditPost.permalink` везде хранится путём.
     private static func path(of link: String) -> String {
         URL(string: link)?.path() ?? link

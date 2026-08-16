@@ -28,6 +28,7 @@ public final class ReelStore {
 
     public func delete(_ reel: Reel) {
         try? FileManager.default.removeItem(at: reel.url)
+        try? FileManager.default.removeItem(at: reel.coverURL)
         reels.removeAll { $0.id == reel.id }
         save()
     }

@@ -1,12 +1,14 @@
 import Foundation
 
-/// Один произносимый кусок. `kind` управляет стилем субтитра: хук крупнее и висит дольше.
-public struct ScriptSegment: Hashable, Sendable {
+/// Один произносимый кусок. `kind` управляет подачей: хук читается медленнее и с большим
+/// разбросом интонации, вопрос в конце — с паузой перед ним.
+public struct ScriptSegment: Codable, Hashable, Sendable {
 
     public enum Kind: String, Codable, Hashable, Sendable, CaseIterable {
         case hook
         case body
-        case comment
+        /// Вопрос зрителю в самом конце — за ним идут комментарии.
+        case outro
     }
 
     public let kind: Kind
@@ -21,10 +23,11 @@ public struct ScriptSegment: Hashable, Sendable {
 /// Готовый русский сценарий. Английский черновик до перевода живёт как `[ScriptSegment]`.
 public struct Script: Hashable, Sendable {
 
-    /// Замер на устройстве: 101 слово голосом Piper — 3.36 сл/с, плюс паузы между фразами.
-    /// Системная Милена медленнее (2.35 сл/с), но она запасной путь: с ней ролик выходит
-    /// длиннее целевого, а не короче, и это лучше обрыва на полуслове.
-    public static let wordsPerSecond = 3.2
+    /// Замер на устройстве: 101 слово нейроголосом — 3.36 сл/с, плюс паузы между фразами;
+    /// с ускорением подачи в полтора раза (`SpeechDelivery.pace`) выходит 4.8. Системный
+    /// голос медленнее, но он запасной путь: с ним ролик выходит длиннее целевого,
+    /// а не короче, и это лучше обрыва на полуслове.
+    public static let wordsPerSecond = 4.8
 
     public let segments: [ScriptSegment]
 

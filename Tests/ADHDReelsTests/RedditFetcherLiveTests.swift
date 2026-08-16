@@ -9,7 +9,9 @@ struct RedditFetcherLiveTests {
 
     @Test("Топ r/AskReddit отдаёт посты")
     func topPosts() async throws {
-        let posts = try await RedditFetcher().topPosts(subreddit: "AskReddit", window: "week", minimumScore: 100)
+        // `refresh` обязателен: без него ответ приедет из кеша, и сеть проверена не будет.
+        let posts = try await RedditFetcher()
+            .topPosts(subreddit: "AskReddit", window: "week", minimumScore: 100, refresh: true)
         #expect(posts.count >= 5)
     }
 }

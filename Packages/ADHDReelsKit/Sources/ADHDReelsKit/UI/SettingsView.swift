@@ -6,6 +6,7 @@ struct SettingsView: View {
 
     @Environment(AppModel.self) private var model
     @State private var isImporting = false
+    @State private var audition = VoiceAudition()
 
     var body: some View {
         @Bindable var model = model
@@ -25,21 +26,52 @@ struct SettingsView: View {
                     )
                 }
 
-                Section("Голос") {
+                Section {
+                    Picker("Язык", selection: $model.settings.language) {
+                        ForEach(ReelLanguage.allCases) { Text($0.title).tag($0) }
+                    }
+
                     Picker("Голос", selection: $model.settings.voiceIdentifier) {
                         Text("Лучший из доступных").tag(String?.none)
-                        ForEach(PiperSpeechEngine.voices()) { voice in
-                            Text("\(voice.title) · нейросеть").tag(String?.some(voice.id))
+                        ForEach(neuralVoices) { voice in
+                            Text(voice.title).tag(String?.some(voice.id))
                         }
-                        ForEach(SystemSpeechEngine.russianVoices(), id: \.identifier) { voice in
-                            Text(voice.name).tag(String?.some(voice.identifier))
+                        ForEach(systemVoices, id: \.identifier) { voice in
+                            Text("\(voice.name) · системный").tag(String?.some(voice.identifier))
                         }
                     }
-                    if PiperSpeechEngine.voices().isEmpty, SystemSpeechEngine.russianVoices().isEmpty {
-                        Text("Русских голосов нет. Настройки → Универсальный доступ → Устный контент → Голоса.")
+
+                    Button {
+                        Task {
+                            do {
+                                try await audition.play(
+                                    voiceIdentifier: model.settings.voiceIdentifier,
+                                    language: model.settings.language
+                                )
+                            } catch {
+                                model.error = error.localizedDescription
+                            }
+                        }
+                    } label: {
+                        if audition.isBusy {
+                            LabeledContent("Готовим пробу") { ProgressView() }
+                        } else {
+                            Label("Послушать", systemImage: "play.circle")
+                        }
+                    }
+                    .disabled(audition.isBusy)
+
+                    if neuralVoices.isEmpty, systemVoices.isEmpty {
+                        Text("Голосов для этого языка нет. Настройки → Универсальный доступ → Устный контент → Голоса.")
                             .font(Theme.body(13))
                             .foregroundStyle(Theme.danger)
                     }
+                } header: {
+                    Text("Голос")
+                } footer: {
+                    Text(model.settings.language == .english
+                         ? "Английский читается без перевода — тред уже на нём."
+                         : "Тред переводится на выбранный язык на самом телефоне.")
                 }
 
                 Section("Субтитры") {
@@ -89,6 +121,16 @@ struct SettingsView: View {
             guard case .success(let urls) = result else { return }
             Task { await model.importGameplay(urls) }
         }
+    }
+
+    /// Нейросетевой диктор у нас только русский: на других языках список пустой,
+    /// и в выборе остаются системные голоса.
+    private var neuralVoices: [VoskSpeechEngine.Voice] {
+        model.settings.language == .russian ? VoskSpeechEngine.voices() : []
+    }
+
+    private var systemVoices: [AVSpeechSynthesisVoice] {
+        SystemSpeechEngine.voices(for: model.settings.language)
     }
 }
 

@@ -8,7 +8,7 @@ import UIKit
 enum RenderLiveReadiness {
 
     static var isReady: Bool {
-        guard !SystemSpeechEngine.russianVoices().isEmpty else { return false }
+        guard !SystemSpeechEngine.voices(for: .russian).isEmpty else { return false }
 
         let folder = URL.documentsDirectory.appending(path: GameplayLibrary.folderName)
         let files = (try? FileManager.default.contentsOfDirectory(atPath: folder.path(percentEncoded: false))) ?? []

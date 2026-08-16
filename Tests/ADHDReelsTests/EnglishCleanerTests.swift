@@ -61,10 +61,17 @@ struct EnglishCleanerTests {
         #expect(EnglishCleaner.clean("that was wild 😳🔥") == "that was wild")
     }
 
-    @Test("Возраст и пол в скобках убираются")
+    @Test("Возраст и пол разворачиваются словами, а не выбрасываются")
     func ageTag() {
-        #expect(EnglishCleaner.clean("My wife (28F) said no") == "My wife said no")
-        #expect(EnglishCleaner.clean("I (M32) left") == "I left")
+        #expect(EnglishCleaner.clean("My wife (28F) said no") == "My wife, a 28-year-old woman, said no")
+        #expect(EnglishCleaner.clean("I (M32) left") == "I, a 32-year-old man, left")
+        #expect(EnglishCleaner.clean("Me 32M and her 30F") == "Me, a 32-year-old man, and her, a 30-year-old woman")
+    }
+
+    @Test("Метку возраста не видят там, где её нет")
+    func ageTagFalsePositives() {
+        #expect(EnglishCleaner.clean("He owes me $32M now") == "He owes me 32M now")
+        #expect(EnglishCleaner.clean("The room was 30 m long") == "The room was 30 m long")
     }
 
     @Test("Выделения и заголовки не читаются вслух")
