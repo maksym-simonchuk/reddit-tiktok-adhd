@@ -31,14 +31,18 @@ public enum SafetyFilter {
     private static let blockedWords: [String] = [
         // Sexual content platforms reject outright.
         "porn", "nsfw", "fetish", "incest", "bestiality",
+        // Sexual violence — surfaced in the live feed, not hypothetical.
+        "rape", "raped", "rapist",
         // Graphic violence and death.
         "gore", "beheading", "dismembered", "necrophilia",
         // Self-harm; these stories need care a 45-second Short cannot give.
         "suicide", "overdose",
     ]
 
-    /// Multi-word terms the word split would break apart.
+    /// Multi-word terms the word split would break apart, matched as substrings:
+    /// "molest" also catches "molested" and "molesting".
     private static let blockedPhrases: [String] = [
         "self-harm", "self harm", "kill myself", "killed himself", "killed herself",
+        "sexual assault", "sexually assault", "molest",
     ]
 }

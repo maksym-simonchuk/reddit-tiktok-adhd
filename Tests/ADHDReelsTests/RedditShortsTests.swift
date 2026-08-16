@@ -130,6 +130,14 @@ struct SafetyFilterTests {
     func catchesPhrases() {
         #expect(SafetyFilter.flaggedTerms(in: "a story about self-harm").contains("self-harm"))
     }
+
+    @Test("Sexual violence is screened even when the post isn't flagged NSFW")
+    func blocksSexualViolence() {
+        #expect(!SafetyFilter.isSafe(post(title: "My twin accused me of sexually assaulting her")))
+        #expect(!SafetyFilter.isSafe(post(title: "He was molested as a child", body: "")))
+        // "grape" and "therapist" must not trip the whole-word screen.
+        #expect(SafetyFilter.flaggedTerms(in: "my therapist ate a grape").isEmpty)
+    }
 }
 
 @Suite("Story categories")
