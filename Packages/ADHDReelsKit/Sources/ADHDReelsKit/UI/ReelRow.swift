@@ -28,12 +28,12 @@ struct ReelRow: View {
 #Preview {
     ReelRow(
         reel: Reel(
-            title: "Двенадцать лет молчания",
+            title: "Twelve years of silence",
             subreddit: "TrueOffMyChest",
             permalink: "/r/x/1/",
             fileName: "a.mp4",
             duration: 47,
-            description: ReelDescription(title: "Двенадцать лет молчания", body: "", tags: [])
+            description: ReelDescription(title: "Twelve years of silence", body: "", tags: [])
         )
     )
     .padding()

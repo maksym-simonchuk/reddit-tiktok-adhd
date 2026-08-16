@@ -1,8 +1,8 @@
 import AVKit
 import SwiftUI
 
-/// Полное превью ролика: видео зацикленно играет, под ним — сохранение в «Фото»
-/// и описание, которое можно забрать в буфер одной кнопкой.
+/// Полное превью ролика: видео зацикленно играет, под ним — метаданные, сохранение
+/// в «Фото», шаринг и описание, которое можно забрать в буфер одной кнопкой.
 struct ReelDetailView: View {
 
     let reel: Reel
@@ -13,6 +13,7 @@ struct ReelDetailView: View {
     @State private var player = AVQueuePlayer()
     @State private var looper: AVPlayerLooper?
     @State private var isSaving = false
+    @State private var isMuted = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -21,7 +22,9 @@ struct ReelDetailView: View {
                     VideoPlayer(player: player)
                         .frame(height: proxy.size.height * 0.62)
                         .clipShape(.rect(cornerRadius: Theme.cornerRadius))
+                        .overlay(alignment: .topTrailing) { playbackControls }
 
+                    metadata
                     actions
                     description
                 }
@@ -33,11 +36,27 @@ struct ReelDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Удалить", systemImage: "trash", role: .destructive) {
-                    model.delete(reel)
-                    dismiss()
+                ShareLink(item: reel.url) {
+                    Image(systemName: "square.and.arrow.up")
                 }
-                .tint(Theme.danger)
+                .accessibilityLabel("Share video")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    if reel.post != nil {
+                        Button("Regenerate", systemImage: "arrow.clockwise") {
+                            model.regenerate(reel)
+                            dismiss()
+                        }
+                    }
+                    Button("Delete", systemImage: "trash", role: .destructive) {
+                        model.delete(reel)
+                        dismiss()
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
             }
         }
         .onAppear {
@@ -46,6 +65,51 @@ struct ReelDetailView: View {
             player.play()
         }
         .onDisappear { player.pause() }
+    }
+
+    private var playbackControls: some View {
+        HStack(spacing: Theme.spacing) {
+            Button {
+                isMuted.toggle()
+                player.isMuted = isMuted
+            } label: {
+                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(Theme.body(14))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(.black.opacity(0.45), in: .circle)
+            }
+            .accessibilityLabel(isMuted ? "Unmute" : "Mute")
+
+            Button {
+                player.seek(to: .zero)
+                player.play()
+            } label: {
+                Image(systemName: "gobackward")
+                    .font(Theme.body(14))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(.black.opacity(0.45), in: .circle)
+            }
+            .accessibilityLabel("Restart")
+        }
+        .padding(Theme.spacing)
+    }
+
+    /// Что именно уедет на платформу: длительность, кадр и вес файла.
+    private var metadata: some View {
+        HStack(spacing: Theme.spacing * 2) {
+            Label(Formatting.duration(reel.duration), systemImage: "timer")
+            Label("1080×1920", systemImage: "aspectratio")
+            Label(Formatting.fileSize(fileSize), systemImage: "internaldrive")
+            Spacer()
+        }
+        .font(Theme.numeric(13))
+        .foregroundStyle(Theme.secondaryText)
+    }
+
+    private var fileSize: Int64 {
+        Int64((try? reel.url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
     }
 
     private var actions: some View {
@@ -57,7 +121,7 @@ struct ReelDetailView: View {
                     isSaving = false
                 }
             } label: {
-                Label(isSaving ? "Сохраняю" : "В галерею", systemImage: "square.and.arrow.down")
+                Label(isSaving ? "Saving" : "Save to Photos", systemImage: "square.and.arrow.down")
                     .font(Theme.body(15))
                     .foregroundStyle(Theme.background)
                     .frame(maxWidth: .infinity)
@@ -69,7 +133,7 @@ struct ReelDetailView: View {
             Button {
                 model.copyDescription(reel)
             } label: {
-                Label("Описание", systemImage: "doc.on.doc")
+                Label("Description", systemImage: "doc.on.doc")
                     .font(Theme.body(15))
                     .foregroundStyle(Theme.primaryText)
                     .frame(maxWidth: .infinity)

@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Вычитка перевода до сборки: русский текст по словам, английский оригинал под ним.
-/// Ткнуть в слова, которые переведены неверно, и нажать «Исправить» — модель перепишет
-/// предложение, зная, где ошиблась, а пара «было — стало» уедет в отчёт. Карандаш
-/// открывает ту же строку в поле ввода: букву проще поправить самому, чем объяснять.
+/// Story detail before the build: the exact narration text, editable line by line.
+/// The pencil opens a line as a text field; on Russian narration, tapping wrong words
+/// and hitting Fix makes the model retranslate the sentence. The wand retells the
+/// whole story punchier, and Generate sends what's on screen straight to the pipeline.
 struct ScriptPreviewView: View {
 
     let thread: String
@@ -11,9 +11,12 @@ struct ScriptPreviewView: View {
     let markedLine: Int?
     let markedWords: Set<Int>
     let fixingLine: Int?
+    let isRewriting: Bool
     let onMark: (TranslatedLine, Int) -> Void
     let onFix: () -> Void
     let onEdit: (TranslatedLine, String) -> Void
+    let onEngage: () -> Void
+    let onGenerate: () -> Void
     let onClose: () -> Void
 
     @State private var editingLine: Int?
@@ -25,7 +28,7 @@ struct ScriptPreviewView: View {
                 if lines.isEmpty {
                     VStack(spacing: Theme.spacing * 2) {
                         ProgressView().tint(Theme.accent)
-                        Text("Перевожу")
+                        Text("Preparing the script")
                             .font(Theme.body(15))
                             .foregroundStyle(Theme.secondaryText)
                     }
@@ -34,7 +37,7 @@ struct ScriptPreviewView: View {
                     List(lines) { line in
                         VStack(alignment: .leading, spacing: Theme.spacing) {
                             if editingLine == line.id {
-                                TextField("Перевод", text: $draft, axis: .vertical)
+                                TextField("Text", text: $draft, axis: .vertical)
                                     .font(Theme.body(17))
                                     .foregroundStyle(Theme.primaryText)
                                     .textInputAutocapitalization(.sentences)
@@ -44,13 +47,13 @@ struct ScriptPreviewView: View {
                                     .foregroundStyle(Theme.tertiaryText)
 
                                 HStack(spacing: Theme.spacing * 2) {
-                                    Button("Сохранить") {
+                                    Button("Save") {
                                         onEdit(line, draft)
                                         editingLine = nil
                                     }
                                     .foregroundStyle(Theme.accent)
 
-                                    Button("Отмена") { editingLine = nil }
+                                    Button("Cancel") { editingLine = nil }
                                         .foregroundStyle(Theme.secondaryText)
                                 }
                                 .font(Theme.body(14))
@@ -73,7 +76,7 @@ struct ScriptPreviewView: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .opacity(fixingLine == line.id ? 0.4 : 1)
+                                .opacity(fixingLine == line.id || isRewriting ? 0.4 : 1)
 
                                 Text(line.caption)
                                     .font(Theme.body(13))
@@ -81,12 +84,12 @@ struct ScriptPreviewView: View {
 
                                 HStack(spacing: Theme.spacing * 2) {
                                     if fixingLine == line.id {
-                                        Label { Text("Переписываю") } icon: { ProgressView().controlSize(.small) }
+                                        Label { Text("Rewriting") } icon: { ProgressView().controlSize(.small) }
                                             .font(Theme.body(14))
                                             .foregroundStyle(Theme.secondaryText)
                                     } else if markedLine == line.id {
                                         Button(action: onFix) {
-                                            Label("Исправить", systemImage: "arrow.trianglehead.counterclockwise")
+                                            Label("Fix", systemImage: "arrow.trianglehead.counterclockwise")
                                                 .font(Theme.body(14))
                                                 .foregroundStyle(Theme.background)
                                                 .padding(.horizontal, Theme.spacing * 2)
@@ -109,7 +112,7 @@ struct ScriptPreviewView: View {
                                             .background(Theme.separator, in: .capsule)
                                     }
                                     .buttonStyle(.plain)
-                                    .accessibilityLabel("Поправить руками")
+                                    .accessibilityLabel("Edit by hand")
                                 }
                                 .frame(height: Theme.minimumHitTarget)
                             }
@@ -122,17 +125,48 @@ struct ScriptPreviewView: View {
                         .listRowInsets(.init(top: Theme.spacing / 2, leading: Theme.spacing * 2, bottom: Theme.spacing / 2, trailing: Theme.spacing * 2))
                     }
                     .listStyle(.plain)
+                    .safeAreaInset(edge: .bottom) { generateBar }
                 }
             }
             .background(Theme.background)
             .navigationTitle(thread)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        onEngage()
+                    } label: {
+                        if isRewriting {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "sparkles")
+                        }
+                    }
+                    .disabled(lines.isEmpty || isRewriting)
+                    .accessibilityLabel("Make this more engaging for Shorts")
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Закрыть", action: onClose)
+                    Button("Close", action: onClose)
                 }
             }
         }
+    }
+
+    /// The reviewed text goes straight into the build — no second trip to the feed.
+    private var generateBar: some View {
+        Button(action: onGenerate) {
+            Label("Generate Video", systemImage: "wand.and.stars")
+                .font(Theme.body(16))
+                .foregroundStyle(Theme.background)
+                .frame(maxWidth: .infinity)
+                .frame(height: Theme.minimumHitTarget)
+                .background(isRewriting ? Theme.tertiaryText : Theme.accent, in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .disabled(isRewriting)
+        .padding(Theme.spacing * 2)
+        .background(Theme.background.opacity(0.94))
     }
 
     private func isMarked(_ line: TranslatedLine, _ word: Int) -> Bool {
@@ -147,22 +181,25 @@ struct ScriptPreviewView: View {
             TranslatedLine(
                 id: 0,
                 kind: .hook,
-                source: "AITA for refusing to pay my brother's rent?",
-                translation: "Нарушал ли я правила, отказавшись платить аренду брату?"
+                source: "",
+                translation: "He begged me to cover his rent — I said one word."
             ),
             TranslatedLine(
                 id: 1,
                 kind: .body,
                 source: "He is a grown man and made his own choices.",
-                translation: "Он взрослый мужик и сам сделал свой выбор."
+                translation: "He is a grown man and made his own choices."
             ),
         ],
-        markedLine: 0,
-        markedWords: [4, 5],
+        markedLine: nil,
+        markedWords: [],
         fixingLine: nil,
+        isRewriting: false,
         onMark: { _, _ in },
         onFix: {},
         onEdit: { _, _ in },
+        onEngage: {},
+        onGenerate: {},
         onClose: {}
     )
 }

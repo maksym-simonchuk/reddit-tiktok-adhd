@@ -7,7 +7,7 @@ public struct RootView: View {
     /// система приносит в приложение, а не в экран.
     private let model: AppModel
 
-    @State private var selection: AppTab = .feed
+    @State private var selection: AppTab = .discover
 
     public init(model: AppModel) {
         self.model = model
@@ -17,13 +17,19 @@ public struct RootView: View {
         @Bindable var model = model
 
         return TabView(selection: $selection) {
-            Tab("Треды", systemImage: "text.bubble.fill", value: AppTab.feed) {
-                FeedView(onShowReel: { selection = .reels })
+            Tab("Discover", systemImage: "flame.fill", value: AppTab.discover) {
+                FeedView(onShowReel: { selection = .projects })
             }
-            Tab("Ролики", systemImage: "play.rectangle.fill", value: AppTab.reels) {
+            Tab("Projects", systemImage: "play.rectangle.fill", value: AppTab.projects) {
                 ReelsView()
             }
-            Tab("Настройка", systemImage: "slider.horizontal.3", value: AppTab.settings) {
+            Tab("Create", systemImage: "wand.and.stars", value: AppTab.create) {
+                CreateView(
+                    onOpenDiscover: { selection = .discover },
+                    onShowReel: { selection = .projects }
+                )
+            }
+            Tab("Settings", systemImage: "slider.horizontal.3", value: AppTab.settings) {
                 SettingsView()
             }
         }
@@ -34,18 +40,18 @@ public struct RootView: View {
             ToastView(text: model.toast)
                 .padding(.bottom, Theme.spacing * 10)
         }
-        .alert("Не получилось", isPresented: .constant(model.error != nil)) {
-            Button("Понятно") { model.error = nil }
+        .alert("Something went wrong", isPresented: .constant(model.error != nil)) {
+            Button("OK") { model.error = nil }
         } message: {
             Text(model.error ?? "")
         }
-        .alert("Нужен языковой пакет", isPresented: $model.needsTranslationPack) {
-            Button("Скачать") { model.downloadTranslationPack() }
-            Button("Отмена", role: .cancel) {}
+        .alert("Language pack needed", isPresented: $model.needsTranslationPack) {
+            Button("Download") { model.downloadTranslationPack() }
+            Button("Cancel", role: .cancel) {}
         } message: {
             Text("""
-                Перевод идёт на устройстве и качается отдельно от языка системы \
-                и клавиатуры. Ставится один раз, около 300 МБ.
+                Translation runs on device and downloads separately from the system \
+                language and keyboard. One-time install, about 300 MB.
                 """)
         }
         .translationTask(model.translationRequest) { session in

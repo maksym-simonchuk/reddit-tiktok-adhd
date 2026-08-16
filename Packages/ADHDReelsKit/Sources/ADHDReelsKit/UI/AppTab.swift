@@ -1,9 +1,10 @@
 import Foundation
 
-/// Три вкладки — вся навигация приложения. Вложенных меню нет.
+/// Четыре вкладки — вся навигация приложения. Вложенных меню нет.
 /// Имя с префиксом, чтобы не затенять `SwiftUI.Tab`.
 enum AppTab: Hashable {
-    case feed
-    case reels
+    case discover
+    case projects
+    case create
     case settings
 }
