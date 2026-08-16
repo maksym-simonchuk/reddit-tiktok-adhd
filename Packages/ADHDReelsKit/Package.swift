@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "ADHDReelsKit",
-    defaultLocalization: "ru",
+    defaultLocalization: "en",
     platforms: [.iOS(.v26)],
     products: [
         .library(name: "ADHDReelsKit", targets: ["ADHDReelsKit"])

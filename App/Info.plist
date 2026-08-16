@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ru</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>ADHDReels</string>
+	<string>Reddit Shorts</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -53,10 +53,10 @@
 	<true/>
 
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Чтобы сохранять готовые ролики в вашу медиатеку.</string>
+	<string>To save finished videos to your photo library.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Чтобы посчитать тайминги субтитров по синтезированной озвучке. Распознавание идёт на устройстве.</string>
+	<string>To compute subtitle timings from the synthesized narration. Recognition runs on device.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Не используется. Требуется системой для распознавания речи из файла.</string>
+	<string>Not used. Required by the system for file-based speech recognition.</string>
 </dict>
 </plist>
