@@ -29,6 +29,17 @@ public struct Script: Hashable, Sendable {
     /// а не короче, и это лучше обрыва на полуслове.
     public static let wordsPerSecond = 4.8
 
+    /// Narration pace differs per language: the Russian path is the neural voice measured
+    /// above; the others go through the system voice at its default delivery, where
+    /// ~155 wpm keeps Shorts narration in the natural 130–170 wpm band.
+    public static func wordsPerSecond(for language: ReelLanguage) -> Double {
+        switch language {
+        case .russian: wordsPerSecond
+        case .english: 2.6
+        case .spanish, .portuguese: 2.8
+        }
+    }
+
     public let segments: [ScriptSegment]
 
     public init(segments: [ScriptSegment]) {

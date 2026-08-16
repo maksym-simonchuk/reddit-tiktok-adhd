@@ -16,11 +16,11 @@ public actor Translator {
             case .packMissing(let language):
                 // Язык системы и клавиатуры к переводу отношения не имеет: пакеты
                 // качаются отдельно. Качает их приложение, поэтому текст — на случай отказа.
-                "Языковой пакет перевода на «\(language.title)» не скачан."
+                "The \(language.title) translation pack is not downloaded."
             case .unsupported(let language):
-                "Устройство не переводит с английского на «\(language.title)»."
+                "This device cannot translate from English to \(language.title)."
             case .engine(let reason):
-                "Переводчик не справился: \(reason)"
+                "Translation failed: \(reason)"
             }
         }
     }

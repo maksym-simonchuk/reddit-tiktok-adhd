@@ -3,7 +3,7 @@ name: ADHDReels
 options:
   bundleIdPrefix: com.local
   createIntermediateGroups: true
-  developmentLanguage: ru
+  developmentLanguage: en
   deploymentTarget:
     iOS: "26.0"
   groupSortPosition: top

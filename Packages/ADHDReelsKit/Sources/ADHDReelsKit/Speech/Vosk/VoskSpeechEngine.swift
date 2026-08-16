@@ -22,11 +22,11 @@ public struct VoskSpeechEngine: SpeechEngine {
         public var errorDescription: String? {
             switch self {
             case .emptyScript:
-                "Сценарий пуст — озвучивать нечего."
+                "The script is empty — nothing to narrate."
             case .engineUnavailable:
-                "Нейросетевой голос не загрузился. Переустановите приложение."
+                "The neural voice failed to load. Reinstall the app."
             case .silence:
-                "Модель не выдала звук."
+                "The model produced no audio."
             }
         }
     }

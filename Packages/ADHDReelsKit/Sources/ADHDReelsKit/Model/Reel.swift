@@ -31,6 +31,9 @@ public struct Reel: Identifiable, Hashable, Sendable, Codable {
     public let duration: Double
     public let createdAt: Date
     public let description: ReelDescription
+    /// Source story, kept so a finished reel can be regenerated with new settings.
+    /// Optional: reels made before this field existed decode without it.
+    public let post: RedditPost?
 
     public init(
         id: UUID = UUID(),
@@ -40,7 +43,8 @@ public struct Reel: Identifiable, Hashable, Sendable, Codable {
         fileName: String,
         duration: Double,
         createdAt: Date = Date(),
-        description: ReelDescription
+        description: ReelDescription,
+        post: RedditPost? = nil
     ) {
         self.id = id
         self.title = title
@@ -50,6 +54,7 @@ public struct Reel: Identifiable, Hashable, Sendable, Codable {
         self.duration = duration
         self.createdAt = createdAt
         self.description = description
+        self.post = post
     }
 
     /// Путь пересобирается от Documents, а не хранится: контейнер приложения

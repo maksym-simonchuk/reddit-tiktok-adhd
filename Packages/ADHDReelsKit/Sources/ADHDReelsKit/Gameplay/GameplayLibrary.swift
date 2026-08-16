@@ -12,9 +12,9 @@ public actor GameplayLibrary {
         public var errorDescription: String? {
             switch self {
             case .empty:
-                "Нет геймплея. Положите вертикальные видео в папку ADHDReels через «Файлы»."
+                "No gameplay footage. Add vertical videos to the app folder via Files."
             case .unreadable(let name):
-                "Не читается файл «\(name)». Скорее всего он ещё копируется."
+                "Cannot read \"\(name)\". It is most likely still copying."
             }
         }
     }

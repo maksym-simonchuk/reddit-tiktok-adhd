@@ -10,7 +10,7 @@ enum SpeechDelivery {
         case encoding
 
         var errorDescription: String? {
-            "Не удалось записать звуковую дорожку."
+            "Could not write the audio track."
         }
     }
 

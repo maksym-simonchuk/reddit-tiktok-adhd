@@ -9,7 +9,7 @@ public actor ReelPipeline {
 
         public var errorDescription: String? {
             switch self {
-            case .emptyScript: "После перевода не осталось текста — выберите другой тред."
+            case .emptyScript: "No text left after processing — pick another story."
             }
         }
     }
@@ -95,9 +95,15 @@ public actor ReelPipeline {
         let identifier = UUID()
         // Расширение не косметика: AVAudioFile выбирает контейнер по нему, а пишем мы PCM.
         let audio = folder.appending(path: "\(identifier.uuidString).wav")
-        let take = try await SpeechEngines.make(voiceIdentifier: settings.voiceIdentifier, language: settings.language)
+        let take = try await SpeechEngines
+            .make(settings: settings)
             .synthesize(script, to: audio)
-        defer { try? FileManager.default.removeItem(at: audio) }
+        // Движок вправе положить дорожку рядом под своим контейнером (ElevenLabs
+        // пишет mp3), поэтому дальше живёт только `take.audioURL` — а подчищаются оба.
+        defer {
+            try? FileManager.default.removeItem(at: audio)
+            try? FileManager.default.removeItem(at: take.audioURL)
+        }
 
         let words = CaptionTimeline.words(for: take, script: script)
         let groups = CaptionGrouper.groups(from: words)
@@ -110,7 +116,7 @@ public actor ReelPipeline {
         let video = folder.appending(path: "\(identifier.uuidString).mp4")
         let duration = try await renderer.render(
             segments: segments,
-            audio: audio,
+            audio: take.audioURL,
             groups: groups,
             theme: settings.caption,
             to: video,
@@ -136,7 +142,8 @@ public actor ReelPipeline {
             permalink: post.permalink,
             fileName: video.lastPathComponent,
             duration: duration,
-            description: description
+            description: description,
+            post: post
         )
     }
 

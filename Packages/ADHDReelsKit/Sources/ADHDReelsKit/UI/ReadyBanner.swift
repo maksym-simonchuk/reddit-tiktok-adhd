@@ -15,7 +15,7 @@ struct ReadyBanner: View {
                     .foregroundStyle(Theme.success)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Ролик готов")
+                    Text("Your Short is ready")
                         .font(Theme.body(15))
                         .foregroundStyle(Theme.primaryText)
                     Text(Formatting.duration(reel.duration))
@@ -25,7 +25,7 @@ struct ReadyBanner: View {
 
                 Spacer()
 
-                Text("Смотреть")
+                Text("Watch")
                     .font(Theme.body(15))
                     .foregroundStyle(Theme.background)
                     .padding(.horizontal, Theme.spacing * 2)
@@ -42,12 +42,12 @@ struct ReadyBanner: View {
 #Preview {
     ReadyBanner(
         reel: Reel(
-            title: "Двенадцать лет молчания",
+            title: "Twelve years of silence",
             subreddit: "TrueOffMyChest",
             permalink: "/r/x/1/",
             fileName: "a.mp4",
             duration: 47,
-            description: ReelDescription(title: "Двенадцать лет молчания", body: "", tags: [])
+            description: ReelDescription(title: "Twelve years of silence", body: "", tags: [])
         ),
         onOpen: {}
     )

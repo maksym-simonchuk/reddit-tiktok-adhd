@@ -26,7 +26,8 @@ public enum CaptionLayerBuilder {
     // MARK: - Текст
 
     static func attributed(group: CaptionGroup, active: Int, theme: CaptionTheme) -> NSAttributedString {
-        let font = font(size: theme.fontSize)
+        let style = Style(of: theme)
+        let font = font(size: theme.fontSize * style.fontScale, weight: style.weight)
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         paragraph.lineHeightMultiple = 0.92
@@ -34,25 +35,60 @@ public enum CaptionLayerBuilder {
         let result = NSMutableAttributedString()
         for (index, word) in group.words.enumerated() {
             let text = theme.uppercase ? word.text.uppercased() : word.text
-            result.append(NSAttributedString(
-                string: index == 0 ? text : " " + text,
-                attributes: [
-                    .font: font,
-                    .foregroundColor: index == active ? UIColor(theme.highlight.color) : UIColor.white,
-                    // Отрицательная ширина рисует и заливку, и обводку: без неё
-                    // белый текст теряется на светлом фоне.
-                    .strokeColor: UIColor.black,
-                    .strokeWidth: -9.0,
-                    .paragraphStyle: paragraph,
-                ]
-            ))
+            var attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: index == active ? style.activeColor : style.inactiveColor,
+                .paragraphStyle: paragraph,
+            ]
+            if style.strokes {
+                // Отрицательная ширина рисует и заливку, и обводку: без неё
+                // белый текст теряется на светлом фоне.
+                attributes[.strokeColor] = UIColor.black
+                attributes[.strokeWidth] = -9.0
+            }
+            result.append(NSAttributedString(string: index == 0 ? text : " " + text, attributes: attributes))
         }
 
         return result
     }
 
-    private static func font(size: CGFloat) -> UIFont {
-        let base = UIFont.systemFont(ofSize: size, weight: .black)
+    /// Everything a preset controls, resolved once. Word-level sync itself is identical
+    /// in every preset — only how the active word stands out differs.
+    struct Style {
+        let weight: UIFont.Weight
+        let fontScale: CGFloat
+        let strokes: Bool
+        let activeColor: UIColor
+        let inactiveColor: UIColor
+        let shadowOpacity: Float
+        let pulses: Bool
+
+        init(of theme: CaptionTheme) {
+            let highlight = UIColor(theme.highlight.color)
+            switch theme.preset {
+            case .classic:
+                // No color pop: the active word reads as the only fully lit one.
+                weight = .black; fontScale = 1; strokes = true; pulses = false
+                activeColor = .white; inactiveColor = UIColor(white: 1, alpha: 0.75)
+                shadowOpacity = 0.55
+            case .viral:
+                weight = .black; fontScale = 1; strokes = true; pulses = false
+                activeColor = highlight; inactiveColor = .white
+                shadowOpacity = 0.55
+            case .minimal:
+                weight = .semibold; fontScale = 0.8; strokes = false; pulses = false
+                activeColor = .white; inactiveColor = UIColor(white: 1, alpha: 0.6)
+                shadowOpacity = 0.35
+            case .bold:
+                weight = .black; fontScale = 1.08; strokes = true; pulses = true
+                activeColor = highlight; inactiveColor = .white
+                shadowOpacity = 0.7
+            }
+        }
+    }
+
+    private static func font(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+        let base = UIFont.systemFont(ofSize: size, weight: weight)
         // Скруглённый вариант системного шрифта покрывает кириллицу — сторонний
         // шрифт под это не нужен.
         guard let descriptor = base.fontDescriptor.withDesign(.rounded) else { return base }
@@ -87,16 +123,31 @@ public enum CaptionLayerBuilder {
             height: height
         )
 
+        let style = Style(of: theme)
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.55
+        layer.shadowOpacity = style.shadowOpacity
         layer.shadowRadius = 12
         layer.shadowOffset = CGSize(width: 0, height: 6)
 
         layer.opacity = 0
         layer.add(switchOpacity(to: 1, at: word.start), forKey: "in")
         layer.add(switchOpacity(to: 0, at: word.end), forKey: "out")
+        if style.pulses { layer.add(pulse(at: word.start), forKey: "pulse") }
 
         return layer
+    }
+
+    /// Bold preset: the block lands a touch larger on each word and settles — the
+    /// hit is per word because each word owns its layer.
+    private static func pulse(at time: Double) -> CABasicAnimation {
+        let animation = CABasicAnimation(keyPath: "transform.scale")
+        animation.fromValue = 1.06
+        animation.toValue = 1.0
+        animation.beginTime = time <= 0 ? AVCoreAnimationBeginTimeAtZero : time
+        animation.duration = 0.12
+        animation.fillMode = .forwards
+        animation.isRemovedOnCompletion = false
+        return animation
     }
 
     /// В Core Animation `beginTime == 0` означает «сейчас», поэтому нулевой момент

@@ -14,11 +14,11 @@ public struct SystemSpeechEngine: SpeechEngine {
         public var errorDescription: String? {
             switch self {
             case .noVoice(let language):
-                "Нет голоса для языка «\(language.title)». Настройки → Универсальный доступ → Устный контент → Голоса."
+                "No voice available for \(language.title). Settings → Accessibility → Spoken Content → Voices."
             case .emptyScript:
-                "Сценарий пуст — озвучивать нечего."
+                "The script is empty — nothing to narrate."
             case .silence:
-                "Синтезатор не выдал звук. Попробуйте другой голос."
+                "The synthesizer produced no audio. Try another voice."
             }
         }
     }
@@ -33,6 +33,17 @@ public struct SystemSpeechEngine: SpeechEngine {
     private let language: ReelLanguage
     private let voiceIdentifier: String?
     private let rate: Float
+
+    /// Maps the user-facing speed multiplier onto the non-linear AVSpeech scale
+    /// (0.5 is normal speech, 0.57 is roughly 1.5×, see `init`). Russian keeps the 1.5×
+    /// delivery it was tuned for; other languages narrate at natural pace — for English
+    /// that is ~155 wpm, inside the 130–170 wpm band Shorts narration aims for.
+    public static func rate(for language: ReelLanguage, speed: Double = 1) -> Float {
+        let base: Double = language == .russian ? 1.5 : 1.0
+        let pace = Float(base * speed)
+        let rate: Float = 0.5 + 0.14 * (pace - 1)
+        return min(max(rate, 0.35), 0.68)
+    }
 
     /// `rate` по умолчанию быстрее системного: в ролике обычная диктовка звучит вяло.
     /// Шкала AVSpeech нелинейная — 0.5 это обычная речь, 1.0 примерно вчетверо быстрее,

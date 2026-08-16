@@ -19,7 +19,9 @@ public final class VoiceAudition {
 
     public init() {}
 
-    public func play(voiceIdentifier: String?, language: ReelLanguage) async throws {
+    /// Проба берёт настройки целиком: движок, голос и скорость выбираются той же
+    /// логикой, что и в сборке, — иначе слушали бы не тот голос, что поедет в ролик.
+    public func play(settings: ReelSettings) async throws {
         guard !isBusy else { return }
         isBusy = true
         defer { isBusy = false }
@@ -27,8 +29,8 @@ public final class VoiceAudition {
         stop()
 
         let url = URL.temporaryDirectory.appending(path: "voice-sample.wav")
-        let engine = SpeechEngines.make(voiceIdentifier: voiceIdentifier, language: language)
-        _ = try await engine.synthesize(Self.sample(for: language), to: url)
+        let engine = SpeechEngines.make(settings: settings)
+        let take = try await engine.synthesize(Self.sample(for: settings.language), to: url)
 
         // Категория по умолчанию молчит с выключенным звонком, а проба голоса — ровно
         // тот случай, когда звука ждут: человек нажал кнопку «Послушать».
@@ -36,7 +38,7 @@ public final class VoiceAudition {
         try? session.setCategory(.playback)
         try? session.setActive(true)
 
-        player = try AVAudioPlayer(contentsOf: url)
+        player = try AVAudioPlayer(contentsOf: take.audioURL)
         player?.play()
     }
 

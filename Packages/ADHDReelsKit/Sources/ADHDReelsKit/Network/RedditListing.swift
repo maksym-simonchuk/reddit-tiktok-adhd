@@ -38,6 +38,8 @@ public enum RedditListing {
         let over_18: Bool?
         let permalink: String?
         let stickied: Bool?
+        let num_comments: Int?
+        let created_utc: Double?
 
         var asPost: RedditPost? {
             guard let id, let title, stickied != true else { return nil }
@@ -48,7 +50,9 @@ public enum RedditListing {
                 selftext: selftext ?? "",
                 score: score ?? 0,
                 isNSFW: over_18 ?? false,
-                permalink: permalink ?? "/comments/\(id)/"
+                permalink: permalink ?? "/comments/\(id)/",
+                numComments: num_comments,
+                createdAt: created_utc.map { Date(timeIntervalSince1970: $0) }
             )
         }
     }

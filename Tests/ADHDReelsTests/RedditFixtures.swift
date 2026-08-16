@@ -7,7 +7,8 @@ enum RedditFixtures {
       {"kind":"t3","data":{
         "id":"a1","subreddit":"AskReddit","title":"AITA for leaving early?",
         "selftext":"My wife (28F) got mad.\n\nI left the party at 9.\n\nEdit: wow this blew up",
-        "score":8400,"over_18":false,"permalink":"/r/AskReddit/comments/a1/x/","stickied":false}},
+        "score":8400,"over_18":false,"permalink":"/r/AskReddit/comments/a1/x/","stickied":false,
+        "num_comments":1830,"created_utc":1755300000}},
       {"kind":"t3","data":{
         "id":"a2","subreddit":"AskReddit","title":"Pinned: read the rules",
         "selftext":"","score":50000,"over_18":false,"permalink":"/r/AskReddit/comments/a2/x/","stickied":true}},

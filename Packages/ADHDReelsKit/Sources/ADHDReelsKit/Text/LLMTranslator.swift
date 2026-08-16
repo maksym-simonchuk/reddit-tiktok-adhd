@@ -242,8 +242,8 @@ public actor LLMTranslator {
 
         var errorDescription: String? {
             switch self {
-            case .rejected: "Модель ответила не переводом."
-            case .unavailable: "Модель перевода не установлена — правка работает только на устройстве."
+            case .rejected: "The model replied with something other than a translation."
+            case .unavailable: "The translation model is not installed — editing works on device only."
             }
         }
     }

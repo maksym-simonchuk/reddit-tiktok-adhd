@@ -33,6 +33,54 @@ public final class ReelStore {
         save()
     }
 
+    public func rename(_ reel: Reel, to title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let index = reels.firstIndex(where: { $0.id == reel.id }) else { return }
+
+        let old = reels[index]
+        reels[index] = Reel(
+            id: old.id,
+            title: trimmed,
+            subreddit: old.subreddit,
+            permalink: old.permalink,
+            fileName: old.fileName,
+            duration: old.duration,
+            createdAt: old.createdAt,
+            description: old.description,
+            post: old.post
+        )
+        save()
+    }
+
+    /// Copies the mp4 and the cover under a fresh id. Returns nil when the video copy
+    /// fails — a list entry that opens nothing is worse than a failed action.
+    @discardableResult
+    public func duplicate(_ reel: Reel) -> Reel? {
+        let id = UUID()
+        let fileName = "\(id.uuidString).mp4"
+        let copy = Reel(
+            id: id,
+            title: reel.title,
+            subreddit: reel.subreddit,
+            permalink: reel.permalink,
+            fileName: fileName,
+            duration: reel.duration,
+            description: reel.description,
+            post: reel.post
+        )
+
+        do {
+            try FileManager.default.copyItem(at: reel.url, to: copy.url)
+        } catch {
+            return nil
+        }
+        try? FileManager.default.copyItem(at: reel.coverURL, to: copy.coverURL)
+
+        reels.insert(copy, at: 0)
+        save()
+        return copy
+    }
+
     public func diskUsage() -> Int64 {
         reels.reduce(0) { total, reel in
             let bytes = (try? reel.url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
