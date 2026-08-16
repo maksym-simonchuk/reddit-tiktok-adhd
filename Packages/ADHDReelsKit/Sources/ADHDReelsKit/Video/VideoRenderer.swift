@@ -167,6 +167,13 @@ public actor VideoRenderer {
     private func captions(_ groups: [CaptionGroup], theme: CaptionTheme) -> AVVideoCompositionCoreAnimationTool? {
         guard !groups.isEmpty else { return nil }
 
+        // Экспорт с CoreAnimationTool на симуляторе падает внутри системы:
+        // FigCoreAnimationRendererCopyPixelBufferAtTime → CA::OGL → IOSurfaceCreate
+        // → xpc_api_misuse, известный баг симулятора. Здесь ролик собирается без
+        // субтитров; на устройстве рендерит Metal — там субтитры на месте.
+        #if targetEnvironment(simulator)
+        return nil
+        #else
         let frame = CGRect(origin: .zero, size: Self.renderSize)
 
         let videoLayer = CALayer()
@@ -178,6 +185,7 @@ public actor VideoRenderer {
         parent.addSublayer(CaptionLayerBuilder.layer(groups: groups, size: Self.renderSize, theme: theme))
 
         return AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: videoLayer, in: parent)
+        #endif
     }
 
     // MARK: - Экспорт
