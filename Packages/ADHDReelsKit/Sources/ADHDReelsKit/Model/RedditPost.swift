@@ -9,6 +9,9 @@ public struct RedditPost: Identifiable, Codable, Hashable, Sendable {
     public let score: Int
     public let isNSFW: Bool
     public let permalink: String
+    /// Optional because the RSS fallback has neither field — the card just omits them.
+    public let numComments: Int?
+    public let createdAt: Date?
 
     public init(
         id: String,
@@ -17,7 +20,9 @@ public struct RedditPost: Identifiable, Codable, Hashable, Sendable {
         selftext: String,
         score: Int,
         isNSFW: Bool,
-        permalink: String
+        permalink: String,
+        numComments: Int? = nil,
+        createdAt: Date? = nil
     ) {
         self.id = id
         self.subreddit = subreddit
@@ -26,6 +31,8 @@ public struct RedditPost: Identifiable, Codable, Hashable, Sendable {
         self.score = score
         self.isNSFW = isNSFW
         self.permalink = permalink
+        self.numComments = numComments
+        self.createdAt = createdAt
     }
 
     /// Reddit иногда отдаёт permalink с символами, ломающими URL, поэтому опционал.
