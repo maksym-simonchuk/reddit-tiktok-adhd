@@ -95,7 +95,19 @@ struct SettingsView: View {
                     SecureField("ElevenLabs API key", text: $elevenLabsKey)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .onChange(of: elevenLabsKey) { model.saveElevenLabsKey(elevenLabsKey) }
+                        .onChange(of: elevenLabsKey) {
+                            // Пустое поле по ходу набора — это редактирование, а не
+                            // решение расстаться с ключом: удаляет только кнопка ниже.
+                            let trimmed = elevenLabsKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !trimmed.isEmpty { model.saveElevenLabsKey(trimmed) }
+                        }
+
+                    if !elevenLabsKey.isEmpty {
+                        Button("Remove key", role: .destructive) {
+                            elevenLabsKey = ""
+                            model.saveElevenLabsKey("")
+                        }
+                    }
 
                     if !model.settings.useElevenLabs, neuralVoices.isEmpty, systemVoices.isEmpty {
                         Text("No voices for this language. Settings → Accessibility → Spoken Content → Voices.")
@@ -163,6 +175,9 @@ struct SettingsView: View {
         .tint(Theme.accent)
         .task {
             elevenLabsKey = model.elevenLabsKey()
+            // Ключ могли стереть в обход приложения (сброс связки ключей) —
+            // включённый тумблер без ключа обещает то, чего движок не сделает.
+            if elevenLabsKey.isEmpty { model.settings.useElevenLabs = false }
             await model.refreshGameplay()
         }
         .fileImporter(

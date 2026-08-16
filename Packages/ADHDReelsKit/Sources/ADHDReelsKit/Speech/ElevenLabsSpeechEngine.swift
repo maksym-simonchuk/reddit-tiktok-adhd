@@ -31,6 +31,7 @@ public struct ElevenLabsSpeechEngine: SpeechEngine {
         case badKey
         case rateLimited
         case badStatus(Int)
+        case server(String)
         case malformed
         case silence
 
@@ -40,6 +41,7 @@ public struct ElevenLabsSpeechEngine: SpeechEngine {
             case .badKey: "ElevenLabs rejected the API key. Check the key in Settings and the plan's character quota."
             case .rateLimited: "ElevenLabs is rate-limiting requests. Wait a minute and try again."
             case .badStatus(let code): "ElevenLabs responded with status \(code)."
+            case .server(let message): "ElevenLabs: \(message)"
             case .malformed: "ElevenLabs sent a response in an unknown format."
             case .silence: "ElevenLabs returned no audio. Try another voice."
             }
@@ -54,7 +56,8 @@ public struct ElevenLabsSpeechEngine: SpeechEngine {
         Keychain.string(for: account)
     }
 
-    public static func setStoredKey(_ key: String?) {
+    @discardableResult
+    public static func setStoredKey(_ key: String?) -> Bool {
         Keychain.set(key?.trimmingCharacters(in: .whitespacesAndNewlines), for: account)
     }
 
@@ -180,13 +183,28 @@ public struct ElevenLabsSpeechEngine: SpeechEngine {
         case 200..<300: break
         case 401, 403: throw Failure.badKey
         case 429: throw Failure.rateLimited
-        default: throw Failure.badStatus(http.statusCode)
+        default: throw Self.serverMessage(in: data).map(Failure.server) ?? Failure.badStatus(http.statusCode)
         }
 
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         guard let answer = try? decoder.decode(Answer.self, from: data) else { throw Failure.malformed }
         return answer
+    }
+
+    /// Тело ошибки API приходит двумя формами — `{"detail": {"message": "…"}}`
+    /// и `{"detail": "…"}`; человеку полезнее текст сервера, чем голый статус.
+    static func serverMessage(in data: Data) -> String? {
+        struct Nested: Decodable {
+            struct Detail: Decodable { let message: String? }
+            let detail: Detail?
+        }
+        struct Flat: Decodable { let detail: String? }
+
+        if let message = (try? JSONDecoder().decode(Nested.self, from: data))?.detail?.message {
+            return message
+        }
+        return (try? JSONDecoder().decode(Flat.self, from: data))?.detail
     }
 
     /// Длительность берётся из самого файла: монтаж режет геймплей ровно под неё,

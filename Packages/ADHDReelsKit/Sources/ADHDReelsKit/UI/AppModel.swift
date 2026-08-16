@@ -204,6 +204,10 @@ public final class AppModel {
                 RenderJob.clear()
                 needsTranslationPack = true
             } catch {
+                // Manual cancel reaches network-backed engines as URLError(.cancelled),
+                // not CancellationError — neither is a failure worth a card.
+                guard !Task.isCancelled, (error as? URLError)?.code != .cancelled else { return }
+
                 // Retry restarts the same job from the failure card; the disk copy
                 // still goes, so a background wake never replays a failing build.
                 RenderJob.clear()
@@ -252,7 +256,8 @@ public final class AppModel {
     /// объяснять модели.
     public func edit(_ line: TranslatedLine, text: String) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, let index = previewLines.firstIndex(where: { $0.id == line.id }) else { return }
+        guard !isRewriting, !text.isEmpty,
+              let index = previewLines.firstIndex(where: { $0.id == line.id }) else { return }
 
         previewLines[index] = TranslatedLine(
             id: line.id,
@@ -266,6 +271,10 @@ public final class AppModel {
     /// Тычок в слово. Отмечать можно только в одной строке: правится она целиком,
     /// и куски из разных предложений модели не объяснить.
     public func mark(line: TranslatedLine, word: Int) {
+        // Пока модель переписывает текст, отметки бессмысленны: строки вот-вот
+        // заменятся, и отметка пережила бы их с чужим id.
+        guard fixingLine == nil, !isRewriting else { return }
+
         if markedLine != line.id {
             markedLine = line.id
             markedWords = []
@@ -381,6 +390,9 @@ public final class AppModel {
             previewLines = lines.enumerated().map {
                 TranslatedLine(id: $0, kind: $1.kind, source: $1.source, translation: $1.translation)
             }
+            // Строки только что получили новые id — отметка, поставленная во время
+            // ожидания, указывала бы на чужую строку.
+            clearMark()
             keep()
         }
     }
@@ -408,7 +420,10 @@ public final class AppModel {
 
     public func saveElevenLabsKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        ElevenLabsSpeechEngine.setStoredKey(trimmed.isEmpty ? nil : trimmed)
+        guard ElevenLabsSpeechEngine.setStoredKey(trimmed.isEmpty ? nil : trimmed) else {
+            error = "Couldn't store the key in the keychain. Try again."
+            return
+        }
         if trimmed.isEmpty { settings.useElevenLabs = false }
     }
 

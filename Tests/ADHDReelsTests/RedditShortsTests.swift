@@ -99,6 +99,9 @@ struct SubredditInputTests {
         #expect(FeedView.subredditName(from: "") == nil)
         #expect(FeedView.subredditName(from: "not a name") == nil)
         #expect(FeedView.subredditName(from: "https://example.com/") == nil)
+        // Non-ASCII passes isLetter but Reddit has no such subreddits — reject
+        // instead of firing a guaranteed 404.
+        #expect(FeedView.subredditName(from: "підреддіт") == nil)
     }
 }
 
@@ -270,6 +273,17 @@ struct ElevenLabsAlignmentTests {
         let truncated = ElevenLabsSpeechEngine.words(characters: ["a", "b", "c"], starts: [0], ends: [0.1])
         #expect(truncated.map(\.text) == ["a"])
     }
+
+    @Test("Both error envelope shapes surface the server's message")
+    func decodesErrorEnvelope() {
+        let nested = Data(#"{"detail":{"status":"quota_exceeded","message":"Quota exceeded"}}"#.utf8)
+        #expect(ElevenLabsSpeechEngine.serverMessage(in: nested) == "Quota exceeded")
+
+        let flat = Data(#"{"detail":"Voice not found"}"#.utf8)
+        #expect(ElevenLabsSpeechEngine.serverMessage(in: flat) == "Voice not found")
+
+        #expect(ElevenLabsSpeechEngine.serverMessage(in: Data("<html>".utf8)) == nil)
+    }
 }
 
 @Suite("Keychain store")
@@ -280,13 +294,13 @@ struct KeychainTests {
         let account = "test-keychain-roundtrip"
         defer { Keychain.set(nil, for: account) }
 
-        Keychain.set("secret-123", for: account)
+        #expect(Keychain.set("secret-123", for: account))
         #expect(Keychain.string(for: account) == "secret-123")
 
-        Keychain.set("rotated", for: account)
+        #expect(Keychain.set("rotated", for: account))
         #expect(Keychain.string(for: account) == "rotated")
 
-        Keychain.set(nil, for: account)
+        #expect(Keychain.set(nil, for: account))
         #expect(Keychain.string(for: account) == nil)
     }
 }
