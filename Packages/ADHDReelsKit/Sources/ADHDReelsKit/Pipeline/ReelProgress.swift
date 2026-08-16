@@ -13,13 +13,19 @@ public enum ReelStage: Int, CaseIterable, Comparable, Sendable {
 
     public var title: String {
         switch self {
-        case .reading: "Читаю тред"
-        case .translating: "Перевожу"
-        case .voicing: "Озвучиваю"
-        case .mounting: "Подбираю геймплей"
-        case .rendering: "Собираю видео"
-        case .describing: "Пишу описание"
+        case .reading: "Fetching story"
+        case .translating: "Translating"
+        case .voicing: "Generating narration"
+        case .mounting: "Picking gameplay"
+        case .rendering: "Rendering video"
+        case .describing: "Writing description"
         }
+    }
+
+    /// Steps shown in the generation checklist. Translation only appears when the
+    /// pipeline will actually run it — a permanently skipped row reads as a stall.
+    public static func visibleStages(for language: ReelLanguage) -> [ReelStage] {
+        allCases.filter { $0 != .translating || language.needsTranslation }
     }
 
     /// Доля общего времени. Перевод и синтез идут по тексту, монтаж — по кадрам,

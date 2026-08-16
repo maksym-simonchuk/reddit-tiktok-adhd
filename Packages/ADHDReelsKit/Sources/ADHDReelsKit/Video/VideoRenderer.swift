@@ -15,15 +15,15 @@ public actor VideoRenderer {
         public var errorDescription: String? {
             switch self {
             case .emptySegments:
-                "Нет геймплея для монтажа."
+                "No gameplay footage to compose."
             case .noVideoTrack(let name):
-                "В файле «\(name)» нет видеодорожки."
+                "File \"\(name)\" has no video track."
             case .noAudioTrack:
-                "В озвучке нет звуковой дорожки."
+                "The narration has no audio track."
             case .export(let reason):
-                "Экспорт не удался: \(reason)"
+                "Export failed: \(reason)"
             case .wrongSize(let size):
-                "Экспорт выдал \(size) вместо 1080x1920."
+                "Export produced \(size) instead of 1080x1920."
             }
         }
     }

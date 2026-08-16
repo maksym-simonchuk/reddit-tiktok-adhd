@@ -9,11 +9,20 @@ public struct ReelSettings: Codable, Hashable, Sendable {
     public var targetDuration: Double = 45
     public var minimumScore = 500
     public var voiceIdentifier: String?
+    /// Narration speed multiplier; 1.0 is each engine's tuned delivery.
+    public var voiceSpeed: Double = 1
+    /// Skips NSFW posts and stories that trip the profanity screen.
+    public var safeContentOnly = true
     public var caption = CaptionTheme()
+
+    /// Cloud narration via ElevenLabs. Only the choice and the narrator live here —
+    /// the API key stays in the keychain, never in this blob.
+    public var useElevenLabs = false
+    public var elevenLabsVoiceID: String?
 
     /// Голоса привязаны к языку, поэтому смена языка сбрасывает выбор: сохранённый
     /// диктор чужого языка всё равно не нашёлся бы, а движок молча брал бы первый.
-    public var language = ReelLanguage.russian {
+    public var language = ReelLanguage.english {
         didSet { if oldValue != language { voiceIdentifier = nil } }
     }
 
@@ -25,10 +34,10 @@ public struct ReelSettings: Codable, Hashable, Sendable {
 
     public static func windowTitle(_ window: String) -> String {
         switch window {
-        case "day": "За день"
-        case "week": "За неделю"
-        case "month": "За месяц"
-        default: "За год"
+        case "day": "Today"
+        case "week": "This week"
+        case "month": "This month"
+        default: "This year"
         }
     }
 
@@ -49,12 +58,12 @@ public struct ReelSettings: Codable, Hashable, Sendable {
     }
 
     private static let titles = [
-        "TrueOffMyChest": "Наболело",
-        "AmItheAsshole": "Я не прав?",
-        "tifu": "Я всё испортил",
-        "confession": "Признания",
-        "relationship_advice": "Отношения",
-        "pettyrevenge": "Мелкая месть",
+        "TrueOffMyChest": "Off My Chest",
+        "AmItheAsshole": "Am I the A-hole?",
+        "tifu": "Today I F'd Up",
+        "confession": "Confessions",
+        "relationship_advice": "Relationships",
+        "pettyrevenge": "Petty Revenge",
     ]
 
     public var scriptOptions: ScriptWriter.Options {
@@ -65,6 +74,31 @@ public struct ReelSettings: Codable, Hashable, Sendable {
     }
 
     // MARK: - Хранение
+
+    private enum CodingKeys: String, CodingKey {
+        case subreddit, window, targetDuration, minimumScore
+        case voiceIdentifier, voiceSpeed, safeContentOnly, caption, language
+        case useElevenLabs, elevenLabsVoiceID
+    }
+
+    /// Every field decodes as optional: a blob saved by an older build is missing the
+    /// newer keys, and failing the whole decode would silently reset user settings.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = ReelSettings()
+
+        subreddit = try container.decodeIfPresent(String.self, forKey: .subreddit) ?? defaults.subreddit
+        window = try container.decodeIfPresent(String.self, forKey: .window) ?? defaults.window
+        targetDuration = try container.decodeIfPresent(Double.self, forKey: .targetDuration) ?? defaults.targetDuration
+        minimumScore = try container.decodeIfPresent(Int.self, forKey: .minimumScore) ?? defaults.minimumScore
+        voiceIdentifier = try container.decodeIfPresent(String.self, forKey: .voiceIdentifier)
+        voiceSpeed = try container.decodeIfPresent(Double.self, forKey: .voiceSpeed) ?? defaults.voiceSpeed
+        safeContentOnly = try container.decodeIfPresent(Bool.self, forKey: .safeContentOnly) ?? defaults.safeContentOnly
+        caption = try container.decodeIfPresent(CaptionTheme.self, forKey: .caption) ?? defaults.caption
+        useElevenLabs = try container.decodeIfPresent(Bool.self, forKey: .useElevenLabs) ?? defaults.useElevenLabs
+        elevenLabsVoiceID = try container.decodeIfPresent(String.self, forKey: .elevenLabsVoiceID)
+        language = try container.decodeIfPresent(ReelLanguage.self, forKey: .language) ?? defaults.language
+    }
 
     private static let key = "settings"
 

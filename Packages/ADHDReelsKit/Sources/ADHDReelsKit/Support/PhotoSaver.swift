@@ -11,9 +11,9 @@ public enum PhotoSaver {
         public var errorDescription: String? {
             switch self {
             case .denied:
-                "Нет доступа к «Фото». Настройки → ADHDReels → Фото → Добавление фото."
+                "No access to Photos. Settings → Reddit Shorts → Photos → Add Photos Only."
             case .save(let reason):
-                "Не удалось сохранить: \(reason)"
+                "Could not save: \(reason)"
             }
         }
     }

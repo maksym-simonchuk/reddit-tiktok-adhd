@@ -13,11 +13,11 @@ public actor RedditFetcher {
 
         public var errorDescription: String? {
             switch self {
-            case .rateLimited: "Reddit ограничил запросы с устройства. Подождите минуту."
-            case .blocked: "Reddit не отдаёт данные этому устройству. Попробуйте позже или через VPN."
-            case .badStatus(let code): "Reddit ответил кодом \(code)."
-            case .malformed: "Reddit прислал ответ в неизвестном формате."
-            case .empty: "Под фильтры не подошёл ни один пост."
+            case .rateLimited: "Reddit is rate-limiting this device. Wait a minute and try again."
+            case .blocked: "Reddit is not serving data to this device. Try again later or use a VPN."
+            case .badStatus(let code): "Reddit responded with status \(code)."
+            case .malformed: "Reddit sent a response in an unknown format."
+            case .empty: "No posts matched the current filters."
             }
         }
 
@@ -40,6 +40,11 @@ public actor RedditFetcher {
     private let minimumInterval: TimeInterval = 2
     private var lastRequest: Date = .distantPast
 
+    /// True when the last `topPosts` had to fall back to RSS. RSS carries no NSFW
+    /// flag, so safe mode can't verify those posts — the caller uses this to say so
+    /// instead of silently pretending the filter still works.
+    public private(set) var lastFetchUsedRSS = false
+
     public init(userAgent: String = "ios:com.local.adhdreels:v1.0 (personal use)") {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpAdditionalHeaders = ["User-Agent": userAgent]
@@ -58,6 +63,7 @@ public actor RedditFetcher {
         refresh: Bool = false
     ) async throws -> [RedditPost] {
         let key = "top-\(subreddit)-\(window)-\(limit)-\(minimumScore)-\(allowNSFW)"
+        lastFetchUsedRSS = false
 
         if refresh {
             RedditCache.clear()
@@ -76,6 +82,7 @@ public actor RedditFetcher {
         } catch let failure as Failure where failure.isBlocked {
             let data = try await get("/r/\(subreddit)/top/.rss?t=\(window)")
             posts = RedditRSS.posts(from: data, subreddit: subreddit)
+            lastFetchUsedRSS = true
         }
 
         guard !posts.isEmpty else { throw Failure.empty }

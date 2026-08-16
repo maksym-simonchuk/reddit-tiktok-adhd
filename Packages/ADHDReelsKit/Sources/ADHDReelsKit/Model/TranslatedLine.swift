@@ -22,8 +22,8 @@ public struct TranslatedLine: Identifiable, Hashable, Codable, Sendable {
         if !source.isEmpty { return source }
 
         return switch kind {
-        case .outro: "Вопрос зрителю — последняя фраза ролика"
-        default: "Крючок — первая фраза ролика"
+        case .outro: "Question to the viewer — the last line of the video"
+        default: "Hook — the first line of the video"
         }
     }
 

@@ -13,10 +13,10 @@ public enum ReelLanguage: String, Codable, Hashable, Sendable, CaseIterable, Ide
 
     public var title: String {
         switch self {
-        case .russian: "Русский"
-        case .english: "Английский"
-        case .spanish: "Испанский"
-        case .portuguese: "Португальский"
+        case .russian: "Russian"
+        case .english: "English"
+        case .spanish: "Spanish"
+        case .portuguese: "Portuguese"
         }
     }
 

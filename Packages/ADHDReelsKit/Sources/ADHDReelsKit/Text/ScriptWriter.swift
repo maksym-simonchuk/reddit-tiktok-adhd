@@ -72,7 +72,7 @@ public struct ScriptWriter: Sendable {
             if !text.isEmpty { all.insert(ScriptSegment(kind: .hook, text: text), at: 0) }
         }
 
-        let spent = tail.map { Double($0.text.split(whereSeparator: \.isWhitespace).count) / Script.wordsPerSecond } ?? 0
+        let spent = tail.map { Double($0.text.split(whereSeparator: \.isWhitespace).count) / Script.wordsPerSecond(for: options.language) } ?? 0
         var kept = trim(all, toDuration: options.targetDuration - spent)
         if let tail { kept.append(tail) }
 
@@ -91,7 +91,7 @@ public struct ScriptWriter: Sendable {
     /// режет по предложениям. Выбрасывать его целиком нельзя: тело рассказа почти всегда
     /// длиннее бюджета, и от треда оставался один заголовок на три секунды.
     func trim(_ segments: [ScriptSegment], toDuration limit: Double) -> [ScriptSegment] {
-        var budget = Int(limit * Script.wordsPerSecond)
+        var budget = Int(limit * Script.wordsPerSecond(for: options.language))
         var kept: [ScriptSegment] = []
 
         for segment in segments {
