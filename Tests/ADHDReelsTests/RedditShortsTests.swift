@@ -184,19 +184,21 @@ struct SettingsMigrationTests {
         #expect(settings.elevenLabsVoiceID == nil)
     }
 
-    @Test("Fresh install defaults to English narration")
-    func defaultsToEnglish() {
-        #expect(ReelSettings().language == .english)
+    @Test("Fresh install defaults to Russian narration")
+    func defaultsToRussian() {
+        // Не вкус: только на русском работают vosk с ударениями, перевод языковой
+        // моделью и примеры в подсказке крючка. Английский уводит на системный голос.
+        #expect(ReelSettings().language == .russian)
     }
 
     @Test("Language switch drops the voice, same language keeps it")
     func languageResetsVoice() {
         var settings = ReelSettings()
         settings.voiceIdentifier = "some-voice"
-        settings.language = .english
+        settings.language = .russian
         #expect(settings.voiceIdentifier == "some-voice")
 
-        settings.language = .russian
+        settings.language = .english
         #expect(settings.voiceIdentifier == nil)
     }
 }

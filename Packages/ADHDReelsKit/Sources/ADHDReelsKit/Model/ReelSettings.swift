@@ -22,7 +22,11 @@ public struct ReelSettings: Codable, Hashable, Sendable {
 
     /// Голоса привязаны к языку, поэтому смена языка сбрасывает выбор: сохранённый
     /// диктор чужого языка всё равно не нашёлся бы, а движок молча брал бы первый.
-    public var language = ReelLanguage.english {
+    ///
+    /// Русский по умолчанию не про вкус: на нём одном работает vosk с ударениями и
+    /// интонацией, языковая модель в переводе и примеры в подсказке крючка. На любом
+    /// другом языке ролик молча уезжает на системный голос — это слышно сразу.
+    public var language = ReelLanguage.russian {
         didSet { if oldValue != language { voiceIdentifier = nil } }
     }
 
